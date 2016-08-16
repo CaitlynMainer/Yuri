@@ -87,11 +87,15 @@ public class IrcEndPoint extends EndPoint
         String[] lines = message.getMessage().split("\n");
         for (String line : lines)
         {
+            boolean action = (line.charAt(0) == '_' && line.charAt(line.length() - 1) == '_');
             for (String segment : this.divideMessageForSending(line))
             {
                 String username = message.getSenderName();
                 StringBuilder builder = new StringBuilder();
-                builder.append("<");
+                if (action)
+                    builder.append("* ");
+                else
+                    builder.append("<");
                 if (username.length() > 1)
                 {
                     int midway = username.length() / 2;
@@ -101,8 +105,16 @@ public class IrcEndPoint extends EndPoint
                 }
                 else
                     builder.append(username);
-                builder.append("> ");
-                builder.append(segment);
+                if (action)
+                {
+                    builder.append(" ");
+                    builder.append(segment.substring(1, segment.length()-1));
+                }
+                else
+                {
+                    builder.append("> ");
+                    builder.append(segment);
+                }
                 this.sendMessage(builder.toString());
             }
         }
