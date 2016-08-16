@@ -54,6 +54,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         builder.setMessageDelay(MESSAGE_DELAY_AMOUNT);
         builder.setAutoReconnect(true);
         bot = new PircBotX(builder.buildConfiguration());
+        builder.setLogin(bot.getNick());
         this.open();
     }
 
