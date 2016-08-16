@@ -19,6 +19,8 @@ import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
+import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
+import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
 import net.dv8tion.jda.events.Event;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageDeleteEvent;
@@ -105,7 +107,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
         if (endPoint != null)
         {
-            EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
+            EndPointMessage message = new IrcEndPointMessage(event);
             endPoint.sendMessage(message);
         }
     }
@@ -146,7 +148,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromDiscordChannel(e.getChannel()));
         if (endPoint != null)
         {
-            EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
+            EndPointMessage message = new DiscordEndPointMessage(e);
             endPoint.sendMessage(message);
         }
     }
