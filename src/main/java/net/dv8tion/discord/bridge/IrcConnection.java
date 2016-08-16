@@ -20,6 +20,7 @@ import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
+import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
 import net.dv8tion.jda.events.Event;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
@@ -30,6 +31,7 @@ import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.hooks.ListenerAdapter;
+import org.pircbotx.hooks.events.ActionEvent;
 import org.pircbotx.hooks.events.ConnectEvent;
 import org.pircbotx.hooks.events.JoinEvent;
 import org.pircbotx.hooks.events.MessageEvent;
@@ -108,6 +110,18 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (endPoint != null)
         {
             EndPointMessage message = new IrcEndPointMessage(event);
+            endPoint.sendMessage(message);
+        }
+    }
+
+    @Override
+    public void onAction(ActionEvent<PircBotX> event) throws Exception
+    {
+        //If this returns null, then this EndPoint isn't part of a bridge.
+        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        if (endPoint != null)
+        {
+            EndPointMessage message = new IrcActionEndPointMessage(event);
             endPoint.sendMessage(message);
         }
     }

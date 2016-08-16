@@ -21,6 +21,7 @@ import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
 import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
+import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
 import net.dv8tion.jda.entities.Guild;
 import net.dv8tion.jda.entities.TextChannel;
@@ -92,6 +93,11 @@ public class DiscordEndPoint extends EndPoint
         {
             for (String segment : this.divideMessageForSending(message.getMessage()))
                 sendMessage(String.format("<%s> %s", message.getSenderName(), segment));
+        }
+        else if (message instanceof IrcActionEndPointMessage)
+        {
+            for (String segment : this.divideMessageForSending(message.getMessage()))
+                sendMessage(String.format("* %s %s", message.getSenderName(), segment));
         }
     }
 }
