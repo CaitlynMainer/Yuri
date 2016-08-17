@@ -35,7 +35,7 @@ import java.util.List;
 
 public class SetAvatar extends Command
 {
-    AccountManager accountManager = Yui.getAPI().getAccountManager();
+    AccountManager accountManager;
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
@@ -44,6 +44,7 @@ public class SetAvatar extends Command
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);
             return;
         }
+        accountManager = Yui.getAPI().getAccountManager();
         sendMessage(e, new MessageBuilder()
                 .appendString("New avatar set!")
                 .build());
