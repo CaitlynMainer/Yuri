@@ -129,7 +129,8 @@ public class Yui
             jdaBuilder.addListener(help.registerCommand(new RollCommand()));
             jdaBuilder.addListener(help.registerCommand(new InfoCommand()));
             jdaBuilder.addListener(help.registerCommand(new UptimeCommand()));
-
+            jdaBuilder.addListener(help.registerCommand(new SetAvatar()));
+            jdaBuilder.addListener(help.registerCommand(new SetGame()));
             for (IrcConnectInfo info  : settings.getIrcConnectInfos())
             {
                 if (info.getHost() == null || info.getHost().isEmpty())
