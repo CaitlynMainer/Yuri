@@ -39,15 +39,16 @@ public class SetGame extends Command
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
-        String game = "null";
+        String game = null;
         AccountManager accountManager = Yui.getAPI().getAccountManager();
         if (!Permissions.getPermissions().isOp(e.getAuthor()))
         {
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);
             return;
         }
-        for(String item:args){
-            game += item;
+        for (int i=1;i < args.length;i++)
+        {
+            game += " " + args[i];
         }
         accountManager.setGame(game);
     }
