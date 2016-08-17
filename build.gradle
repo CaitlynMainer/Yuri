@@ -101,7 +101,7 @@ class Version {
     }
 
     String toString() {
-        "${getMajor()}.${getMinor()}.${getRevision()}_${getBuild()}"
+        "${getMajor()}.${getMinor()}.${getRevision()}}"
     }
 }
 
