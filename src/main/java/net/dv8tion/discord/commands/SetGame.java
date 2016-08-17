@@ -35,10 +35,11 @@ import java.util.List;
 
 public class SetGame extends Command
 {
-    AccountManager accountManager = Yui.getAPI().getAccountManager();
+
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
+        AccountManager accountManager = Yui.getAPI().getAccountManager();
         if (!Permissions.getPermissions().isOp(e.getAuthor()))
         {
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);
