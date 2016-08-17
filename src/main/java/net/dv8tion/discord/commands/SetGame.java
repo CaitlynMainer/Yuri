@@ -39,7 +39,7 @@ public class SetGame extends Command
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
-        String game = null;
+        String game = "";
         AccountManager accountManager = Yui.getAPI().getAccountManager();
         if (!Permissions.getPermissions().isOp(e.getAuthor()))
         {
