@@ -51,6 +51,7 @@ public class SetAvatar extends Command
         try {
             URL imageURL = new URL(args[1]);
             accountManager.setAvatar(AvatarUtil.getAvatar(imageURL.openStream()));
+            accountManager.update();
         } catch (IOException e1) {
             e1.printStackTrace();
         }
