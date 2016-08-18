@@ -66,6 +66,7 @@ public class SetAvatar extends Command
         } catch (IOException e1) {
             sendMessage(e, new MessageBuilder()
                 .appendString("Error: ")
+                    .appendString(e1.getCause().toString())
                 .build());
             e1.printStackTrace();
         }
