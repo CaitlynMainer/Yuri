@@ -49,9 +49,7 @@ public class SetAvatar extends Command
             return;
         }
         AccountManager accountManager = Yui.getAPI().getAccountManager();
-        sendMessage(e, new MessageBuilder()
-                .appendString("New avatar set!")
-                .build());
+
         try {
 
             URLConnection connection = new URL(args[1]).openConnection();
@@ -62,7 +60,13 @@ public class SetAvatar extends Command
 
             accountManager.setAvatar(AvatarUtil.getAvatar(connection.getInputStream()));
             accountManager.update();
+            sendMessage(e, new MessageBuilder()
+                .appendString("New avatar set!")
+                .build());
         } catch (IOException e1) {
+            sendMessage(e, new MessageBuilder()
+                .appendString("Error: ")
+                .build());
             e1.printStackTrace();
         }
     }
