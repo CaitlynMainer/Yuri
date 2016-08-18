@@ -110,6 +110,8 @@ public class IrcConnectInfo
         {
             builder.addAutoJoinChannel(channel);
         }
+        if (!getIdentPass().isEmpty())
+            builder.setNickservPassword(getIdentPass());
         return builder;
     }
 }
