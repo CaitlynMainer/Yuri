@@ -15,6 +15,7 @@
  */
 package net.dv8tion.discord.bridge;
 
+import net.dv8tion.discord.Yui;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
@@ -22,6 +23,7 @@ import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
+import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.events.Event;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageDeleteEvent;
@@ -37,6 +39,11 @@ import org.pircbotx.hooks.events.JoinEvent;
 import org.pircbotx.hooks.events.MessageEvent;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
 {
@@ -111,6 +118,14 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (endPoint != null)
         {
             EndPointMessage message = new IrcEndPointMessage(event);
+            Pattern pattern = Pattern.compile("@[^\\s]+\\b");
+            Matcher matcher = pattern.matcher(message.getMessage());
+            while(matcher.find())
+            {
+                //users.add(Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0));
+                User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
+                message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
+            }
             endPoint.sendMessage(message);
         }
     }
