@@ -138,6 +138,14 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (endPoint != null)
         {
             EndPointMessage message = new IrcActionEndPointMessage(event);
+            Pattern pattern = Pattern.compile("@[^\\s]+\\b");
+            Matcher matcher = pattern.matcher(message.getMessage());
+            while(matcher.find())
+            {
+                //users.add(Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0));
+                User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
+                message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
+            }
             endPoint.sendMessage(message);
         }
     }
