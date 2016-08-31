@@ -124,8 +124,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             {
                 for (User user : Yui.getAPI().getUsers()) {
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
-                        System.out.println("Mentioning: " + user.getUsername());
-                        message.setMessage(message.getMessage().replace(user.getUsername(), user.getAsMention()).replace("@<","<"));
+                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
                 //if (!Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
@@ -151,7 +150,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             {
                 for (User user : Yui.getAPI().getUsers()) {
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
-                        message.setMessage(message.getMessage().replace(user.getUsername(), user.getAsMention()).replace("@<","<"));
+                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
                 //if (!Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
