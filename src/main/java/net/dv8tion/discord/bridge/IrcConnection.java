@@ -122,9 +122,10 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             Matcher matcher = pattern.matcher(message.getMessage());
             while(matcher.find())
             {
-                //users.add(Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0));
-                User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
-                message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
+                if (!Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
+                    User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@", "")).get(0);
+                    message.setMessage(message.getMessage().replace(u.getUsername(), "<@" + u.getId() + ">").replace("@<", "<"));
+                }
             }
             endPoint.sendMessage(message);
         }
@@ -142,9 +143,10 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             Matcher matcher = pattern.matcher(message.getMessage());
             while(matcher.find())
             {
-                //users.add(Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0));
-                User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
-                message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
+                if (!Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
+                    User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
+                    message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
+                }
             }
             endPoint.sendMessage(message);
         }
