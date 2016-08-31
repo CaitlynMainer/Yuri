@@ -123,8 +123,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             while(matcher.find())
             {
                 for (User user : Yui.getAPI().getUsers()) {
-                    if (user.getUsername().equals(matcher.group(0).replace("@",""))) {
-                        User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
+                    if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
+                        User u = user;
                         message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
 
                     }
@@ -151,8 +151,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             while(matcher.find())
             {
                 for (User user : Yui.getAPI().getUsers()) {
-                    if (user.getUsername().equals(matcher.group(0).replace("@",""))) {
-                        User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
+                    if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
+                        User u = user;
                         message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
 
                     }
