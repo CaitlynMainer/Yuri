@@ -123,10 +123,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             while(matcher.find())
             {
                 for (User user : Yui.getAPI().getUsers()) {
-                    System.out.println(user.getUsername());
-                    System.out.println(matcher.group(0).replace("@",""));
-                    System.out.println(user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@","")));
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
+                        System.out.println("Mentioning: " + user.getUsername());
                         message.setMessage(message.getMessage().replace(user.getUsername(), user.getAsMention()).replace("@<","<"));
                     }
                 }
