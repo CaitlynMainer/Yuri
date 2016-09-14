@@ -106,9 +106,11 @@ public class IrcConnectInfo
         builder.setName(nick);
         builder.setServer(host, port);
         builder.setAutoNickChange(true);
+        System.out.println("Configured IRC AutoJoins: " + autojoinChannels.toString());
         for (String channel : autojoinChannels)
         {
             builder.addAutoJoinChannel(channel);
+            System.out.println("Attempting to join channel: " + channel);
         }
         if (!getIdentPass().isEmpty())
             builder.setNickservPassword(getIdentPass());

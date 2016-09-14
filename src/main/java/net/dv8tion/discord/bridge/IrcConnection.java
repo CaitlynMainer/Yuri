@@ -185,7 +185,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             return;
 
         //Don't care about deleted messages or embeds.
-        if (event instanceof GuildMessageDeleteEvent || event instanceof GuildMessageEmbedEvent)
+        if (event instanceof GuildMessageDeleteEvent /*|| event instanceof GuildMessageEmbedEvent*/)
             return;
 
         GenericGuildMessageEvent e = (GenericGuildMessageEvent) event;
