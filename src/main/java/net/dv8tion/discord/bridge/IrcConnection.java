@@ -171,8 +171,10 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     @Override
     public void onJoin(JoinEvent<PircBotX> event)
     {
-        if (event.getBot().getUserBot().equals(event.getUser()))
+        if (event.getBot().getUserBot().equals(event.getUser())) {
+            System.out.println("Joined: " + event.getChannel().getName());
             EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        }
     }
 
     // -- Discord --

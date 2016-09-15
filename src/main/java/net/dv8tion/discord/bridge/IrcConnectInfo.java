@@ -15,8 +15,12 @@
  */
 package net.dv8tion.discord.bridge;
 
+import net.dv8tion.discord.Yui;
+import net.dv8tion.discord.YuiInfo;
 import org.pircbotx.Configuration;
 import org.pircbotx.PircBotX;
+import org.pircbotx.cap.SASLCapHandler;
+import org.pircbotx.hooks.types.GenericMessageEvent;
 
 import java.util.List;
 
@@ -107,13 +111,18 @@ public class IrcConnectInfo
         builder.setServer(host, port);
         builder.setAutoNickChange(true);
         System.out.println("Configured IRC AutoJoins: " + autojoinChannels.toString());
+
         for (String channel : autojoinChannels)
         {
             builder.addAutoJoinChannel(channel);
-            System.out.println("Attempting to join channel: " + channel);
+            System.out.println("Adding " + channel + " to autojoins");
         }
+
+        builder.setCapEnabled(true);
         if (!getIdentPass().isEmpty())
-            builder.setNickservPassword(getIdentPass());
+            builder.addCapHandler(new SASLCapHandler(getIdentNick(), getIdentPass()));
+            //builder.setNickservPassword(getIdentPass());
+
         return builder;
     }
 }
