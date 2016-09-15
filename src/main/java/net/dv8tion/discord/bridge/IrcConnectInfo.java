@@ -111,7 +111,8 @@ public class IrcConnectInfo
         builder.setServer(host, port);
         builder.setAutoNickChange(true);
         System.out.println("Configured IRC AutoJoins: " + autojoinChannels.toString());
-
+        builder.setAutoReconnect(true);
+        builder.setVersion("Yuri " + YuiInfo.VERSION + " A Discord <-> IRC Relay bot.");
         for (String channel : autojoinChannels)
         {
             builder.addAutoJoinChannel(channel);
