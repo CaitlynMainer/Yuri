@@ -15,12 +15,10 @@
  */
 package net.dv8tion.discord.bridge;
 
-import net.dv8tion.discord.Yui;
-import net.dv8tion.discord.YuiInfo;
+import net.dv8tion.discord.YuriInfo;
 import org.pircbotx.Configuration;
 import org.pircbotx.PircBotX;
 import org.pircbotx.cap.SASLCapHandler;
-import org.pircbotx.hooks.types.GenericMessageEvent;
 
 import java.util.List;
 
@@ -112,7 +110,7 @@ public class IrcConnectInfo
         builder.setAutoNickChange(true);
         System.out.println("Configured IRC AutoJoins: " + autojoinChannels.toString());
         builder.setAutoReconnect(true);
-        builder.setVersion("Yuri " + YuiInfo.VERSION + " A Discord <-> IRC Relay bot.");
+        builder.setVersion("Yuri " + YuriInfo.VERSION + " A Discord <-> IRC Relay bot.");
         for (String channel : autojoinChannels)
         {
             builder.addAutoJoinChannel(channel);

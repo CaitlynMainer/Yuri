@@ -15,7 +15,7 @@
  */
 package net.dv8tion.discord.commands;
 
-import net.dv8tion.discord.YuiInfo;
+import net.dv8tion.discord.YuriInfo;
 import net.dv8tion.jda.JDAInfo;
 import net.dv8tion.jda.MessageBuilder;
 import net.dv8tion.jda.entities.User;
@@ -45,7 +45,7 @@ public class InfoCommand extends Command
 
         MessageBuilder builder = new MessageBuilder();
         builder.appendString("__Yui Information__\n")
-                .appendString("    **Version**:       " + YuiInfo.VERSION.toString().replace("_", "\\_") + "\n")
+                .appendString("    **Version**:       " + YuriInfo.VERSION.toString().replace("_", "\\_") + "\n")
                 .appendString("    **ID**:                " + e.getJDA().getSelfInfo().getId() + "\n")
                 .appendString("__Creator__\n")
                 .appendString("    **Name**:          " + creatorName + "\n")
@@ -54,7 +54,7 @@ public class InfoCommand extends Command
                 .appendString("__Development__\n")
                 .appendString("    **Language**:   Java 8\n")
                 .appendString("    **Library**:        JDA - v" + JDAInfo.VERSION + "\n")
-                .appendString("    **Source**:        <https://github.com/DV8FromTheWorld/Yui>");
+                .appendString("    **Source**:        <https://github.com/DV8FromTheWorld/Yuri>");
         sendMessage(e, builder.build());
     }
 
@@ -67,18 +67,18 @@ public class InfoCommand extends Command
     @Override
     public String getDescription()
     {
-        return "Provides information about Yui.";
+        return "Provides information about Yuri.";
     }
 
     @Override
     public String getName()
     {
-        return "Yui Information";
+        return "Yuri Information";
     }
 
     @Override
     public List<String> getUsageInstructions()
     {
-        return Arrays.asList(".info - Prints all information pertaining to the current instance of Yui.");
+        return Arrays.asList(".info - Prints all information pertaining to the current instance of Yuri.");
     }
 }

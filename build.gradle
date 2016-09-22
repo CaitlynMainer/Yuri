@@ -4,7 +4,7 @@ apply plugin: 'java'
 
 def versionObj = new Version(major: 1, minor: 2, revision: 0)
 group = "net.dv8tion"
-archivesBaseName = "Yui"
+archivesBaseName = "Yuri"
 version = "${versionObj.toString()}"
 
 sourceCompatibility = 1.8
@@ -58,7 +58,7 @@ task sourcesJar(type: Jar) {
 task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Version': version
-        attributes 'Main-Class': "net.dv8tion.discord.Yui"
+        attributes 'Main-Class': "net.dv8tion.discord.Yuri"
     }
     baseName = project.name + '-withDependencies'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }

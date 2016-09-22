@@ -36,7 +36,7 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Yui
+public class Yuri
 {
     //Non error, no action exit codes.
     public static final int NORMAL_SHUTDOWN = 10;
@@ -70,13 +70,13 @@ public class Yui
     public static File getThisJarFile() throws UnsupportedEncodingException
     {
       //Gets the path of the currently running Jar file
-        String path = Yui.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        String path = Yuri.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         String decodedPath = URLDecoder.decode(path, "UTF-8");
 
         //This is code especially written for running and testing this program in an IDE that doesn't compile to .jar when running.
         if (!decodedPath.endsWith(".jar"))
         {
-            return new File("Yui.jar");
+            return new File("Yuri.jar");
         }
         return new File(decodedPath);   //We use File so that when we send the path to the ProcessBuilder, we will be using the proper System path formatting.
     }
@@ -200,7 +200,7 @@ public class Yui
         System.out.println("BotLauncher: We are not running in UTF-8 mode! This is a problem!");
         System.out.println("BotLauncher: Relaunching in UTF-8 mode using -Dfile.encoding=UTF-8");
 
-        String[] command = new String[] {"java", "-Dfile.encoding=UTF-8", "-jar", Yui.getThisJarFile().getAbsolutePath()};
+        String[] command = new String[] {"java", "-Dfile.encoding=UTF-8", "-jar", Yuri.getThisJarFile().getAbsolutePath()};
 
         //Relaunches the bot using UTF-8 mode.
         ProcessBuilder processBuilder =  new ProcessBuilder(command);

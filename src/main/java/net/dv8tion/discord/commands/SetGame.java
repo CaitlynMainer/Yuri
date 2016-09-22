@@ -18,17 +18,13 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
-import net.dv8tion.discord.Yui;
-import net.dv8tion.jda.MessageBuilder;
+import net.dv8tion.discord.Yuri;
 import net.dv8tion.jda.events.message.GenericMessageEvent;
 import net.dv8tion.jda.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.priv.GenericPrivateMessageEvent;
 import net.dv8tion.jda.managers.AccountManager;
-import net.dv8tion.jda.utils.AvatarUtil;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +36,7 @@ public class SetGame extends Command
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
         String game = "";
-        AccountManager accountManager = Yui.getAPI().getAccountManager();
+        AccountManager accountManager = Yuri.getAPI().getAccountManager();
         if (!Permissions.getPermissions().isOp(e.getAuthor()))
         {
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);

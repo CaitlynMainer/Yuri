@@ -15,7 +15,7 @@
  */
 package net.dv8tion.discord.bridge;
 
-import net.dv8tion.discord.Yui;
+import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
@@ -39,9 +39,6 @@ import org.pircbotx.hooks.events.JoinEvent;
 import org.pircbotx.hooks.events.MessageEvent;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -122,13 +119,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             Matcher matcher = pattern.matcher(message.getMessage());
             while(matcher.find())
             {
-                for (User user : Yui.getAPI().getUsers()) {
+                for (User user : Yuri.getAPI().getUsers()) {
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
                         message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
-                //if (!Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
-                //    User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@", "")).get(0);
+                //if (!Yuri.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
+                //    User u = Yuri.getAPI().getUsersByName(matcher.group(0).replace("@", "")).get(0);
                 //    message.setMessage(message.getMessage().replace(u.getUsername(), "<@" + u.getId() + ">").replace("@<", "<"));
                 //}
             }
@@ -148,13 +145,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             Matcher matcher = pattern.matcher(message.getMessage());
             while(matcher.find())
             {
-                for (User user : Yui.getAPI().getUsers()) {
+                for (User user : Yuri.getAPI().getUsers()) {
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
                         message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
-                //if (!Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
-                //    User u = Yui.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
+                //if (!Yuri.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
+                //    User u = Yuri.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
                 //    message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
                 //}
             }

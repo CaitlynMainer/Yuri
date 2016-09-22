@@ -17,8 +17,8 @@ package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
 import net.dv8tion.discord.SettingsManager;
-import net.dv8tion.discord.Yui;
-import net.dv8tion.discord.YuiInfo;
+import net.dv8tion.discord.Yuri;
+import net.dv8tion.discord.YuriInfo;
 import net.dv8tion.jda.MessageBuilder;
 import net.dv8tion.jda.events.message.MessageReceivedEvent;
 
@@ -37,34 +37,34 @@ public class UpdateCommand extends Command
             return;
         }
 
-        if(SettingsManager.getInstance().getSettings().getUseBetaBuilds() && YuiInfo.hasNewBetaVersion())
+        if(SettingsManager.getInstance().getSettings().getUseBetaBuilds() && YuriInfo.hasNewBetaVersion())
         {
             sendMessage(e, new MessageBuilder()
                 .appendString("Updating to the latest **beta** version.\n")
-                .appendString(YuiInfo.VERSION.toString())
+                .appendString(YuriInfo.VERSION.toString())
                 .appendString(" -> ")
-                .appendString(YuiInfo.getLatestBetaVersion().toString())
+                .appendString(YuriInfo.getLatestBetaVersion().toString())
                 .build());
-            System.exit(Yui.UPDATE_LATEST_EXITCODE);
+            System.exit(Yuri.UPDATE_LATEST_EXITCODE);
         }
-        else if (YuiInfo.hasNewRecommendedVersion())
+        else if (YuriInfo.hasNewRecommendedVersion())
         {
             sendMessage(e, new MessageBuilder()
                     .appendString("Updating to the latest **recommended** version.\n")
-                    .appendString(YuiInfo.VERSION.toString())
+                    .appendString(YuriInfo.VERSION.toString())
                     .appendString(" -> ")
-                    .appendString(YuiInfo.getLatestRecommendedVersion().toString())
+                    .appendString(YuriInfo.getLatestRecommendedVersion().toString())
                     .build());
-            System.exit(Yui.UPDATE_RECOMMENDED_EXITCODE);
+            System.exit(Yuri.UPDATE_RECOMMENDED_EXITCODE);
         }
         else
         {
             sendMessage(e, new MessageBuilder()
-                .appendString("Yui is currently up-to-date compared to the latest ")
+                .appendString("Yuri is currently up-to-date compared to the latest ")
                 .appendString(SettingsManager.getInstance().getSettings().getUseBetaBuilds() ? "beta" : "recommended")
                 .appendString("build.\n")
                 .appendString("Current version: ", MessageBuilder.Formatting.BOLD)
-                .appendString(YuiInfo.VERSION.toString())
+                .appendString(YuriInfo.VERSION.toString())
                 .build());
         }
     }

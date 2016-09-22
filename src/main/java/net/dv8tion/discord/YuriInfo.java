@@ -21,7 +21,7 @@ import net.dv8tion.discord.util.Version;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class YuiInfo
+public class YuriInfo
 {
     public static final String RECOMMENDED_BUILD_ROOT = "http://ci.pc-logix.com/job/Yuri/Promoted%20Build/artifact/build/libs/";
     public static final String BETA_BUILD_ROOT = "http://ci.pc-logix.com/job/Yuri/lastCompletedBuild/artifact/build/libs/";
