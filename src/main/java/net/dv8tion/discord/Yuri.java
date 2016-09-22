@@ -100,6 +100,17 @@ public class Yuri
     {
         try
         {
+            File f = new File("yui.db");
+            if(f.exists()){
+                boolean renameResult = f.renameTo(new File("yuri.db"));
+                if(renameResult){
+                    System.out.println("Rename Success");
+                }else{
+                    System.out.println("Rename Failed");
+                }
+            }else{
+                System.out.println("No DB created yet, making a fresh one.");
+            }
             Settings settings = SettingsManager.getInstance().getSettings();
 
             JDABuilder jdaBuilder = new JDABuilder().setBotToken(settings.getBotToken());

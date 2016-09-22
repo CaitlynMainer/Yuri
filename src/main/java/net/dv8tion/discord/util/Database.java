@@ -41,7 +41,7 @@ public class Database
         try
         {
             Class.forName("org.sqlite.JDBC");
-            conn = DriverManager.getConnection("jdbc:sqlite:yui.db");
+            conn = DriverManager.getConnection("jdbc:sqlite:yuri.db");
             Statement statement = conn.createStatement();
             statement.setQueryTimeout(30);
             statement.execute("PRAGMA foreign_keys = ON");
