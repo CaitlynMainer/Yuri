@@ -77,7 +77,7 @@ public class IrcEndPoint extends EndPoint
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        this.getChannel().send().message(message);
+        this.getChannel().send().message( Colors.removeColors(message));
     }
 
     @Override
