@@ -21,6 +21,7 @@ import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
 import org.pircbotx.Channel;
+import org.pircbotx.Colors;
 
 public class IrcEndPoint extends EndPoint
 {
@@ -84,7 +85,7 @@ public class IrcEndPoint extends EndPoint
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        String[] lines = message.getMessage().split("\n");
+        String[] lines =  Colors.removeColors(message.getMessage()).split("\n");
         for (String line : lines)
         {
             boolean action = (line.charAt(0) == '_' && line.charAt(line.length() - 1) == '_');
