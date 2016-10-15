@@ -13,7 +13,7 @@ public class IrcEndPointMessage extends EndPointMessage
 
     public IrcEndPointMessage(MessageEvent<? extends PircBotX> event)
     {
-        super(event.getUser().getNick(), Colors.removeColors(event.getMessage()));
+        super(event.getUser().getNick(), "", Colors.removeColors(event.getMessage()));
         this.ircEvent = event;
         this.ircUser = event.getUser();
     }

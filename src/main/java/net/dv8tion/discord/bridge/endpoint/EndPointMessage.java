@@ -19,11 +19,13 @@ public class EndPointMessage
 {
     //private EndPointType messageType;
     private String senderName;
+    private String senderNick;
     private String message;
 
-    public EndPointMessage(String senderName, String message)
+    public EndPointMessage(String senderName, String senderNick, String message)
     {
         this.senderName = senderName;
+        this.senderNick = senderNick;
         this.message = message;
     }
 
@@ -31,7 +33,7 @@ public class EndPointMessage
     {
         return senderName;
     }
-
+    public String getSenderNick() { return senderNick; }
     public String getMessage()
     {
         return message;
@@ -41,4 +43,5 @@ public class EndPointMessage
     {
         this.message = message;
     }
+    public void setNick(String nick) { this.senderName = nick; }
 }

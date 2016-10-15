@@ -12,7 +12,7 @@ public class IrcActionEndPointMessage extends EndPointMessage
 
     public IrcActionEndPointMessage(ActionEvent<? extends PircBotX> event)
     {
-        super(event.getUser().getNick(), event.getMessage());
+        super(event.getUser().getNick(), "", event.getMessage());
         this.ircEvent = event;
         this.ircUser = event.getUser();
     }

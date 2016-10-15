@@ -92,6 +92,10 @@ public class IrcEndPoint extends EndPoint
             for (String segment : this.divideMessageForSending(line))
             {
                 String username = message.getSenderName();
+                String nickname = message.getSenderNick();
+                if (nickname != null) {
+                    username = nickname;
+                }
                 StringBuilder builder = new StringBuilder();
                 if (action)
                     builder.append("* ");

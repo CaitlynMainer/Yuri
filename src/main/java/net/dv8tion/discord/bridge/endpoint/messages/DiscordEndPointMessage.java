@@ -13,7 +13,7 @@ public class DiscordEndPointMessage extends EndPointMessage
 
     public DiscordEndPointMessage(GenericGuildMessageEvent event)
     {
-        super(event.getAuthor().getUsername(), null);
+        super(event.getAuthor().getUsername(), event.getAuthorNick(), null);
         this.setDiscordMessage(event.getMessage());
         this.discordEvent = event;
         this.discordUser = event.getAuthor();
