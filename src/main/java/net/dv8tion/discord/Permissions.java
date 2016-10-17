@@ -50,7 +50,7 @@ public class Permissions
             }
             if (ops.size() == 0)
             {
-                System.out.print("Please enter the primary nickserv name of the first person with op privileges for the bot:\n> ");
+                System.out.print("Please enter the Discord User ID of the first person with op privileges for the bot:\n> ");
                 String op = scanner.nextLine();
                 addOp(op);
             }
