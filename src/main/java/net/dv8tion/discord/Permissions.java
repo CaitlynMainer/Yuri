@@ -23,9 +23,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 public class Permissions
 {
+    private final Scanner scanner;
     public static final String ADD_OP = "addOp";
     public static final String GET_OPS = "getOps";
     public static final String REMOVE_OPS = "removeOp";
@@ -37,6 +39,7 @@ public class Permissions
 
     private Permissions()
     {
+        scanner = new Scanner(System.in);
         ops = new ArrayList<String>();
         try
         {
@@ -47,7 +50,9 @@ public class Permissions
             }
             if (ops.size() == 0)
             {
-                //TODO: Once we interact with the CLI, request an OP here. For now, default to make bot OP.
+                System.out.print("Please enter the primary nickserv name of the first person with op privileges for the bot:\n> ");
+                String op = scanner.nextLine();
+                addOp(op);
             }
         }
         catch (SQLException e)
