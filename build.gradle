@@ -79,6 +79,7 @@ dependencies {
     compile "org.xerial:sqlite-jdbc:3.8.11.2"
     compile "org.pircbotx:pircbotx:2.0.1"
     compile "commons-io:commons-io:2.4"
+    compile "com.kcthota:emoji4j:5.0"
 }
 
 class Version {

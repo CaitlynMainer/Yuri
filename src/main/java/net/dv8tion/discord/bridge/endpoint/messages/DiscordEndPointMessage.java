@@ -1,5 +1,6 @@
 package net.dv8tion.discord.bridge.endpoint.messages;
 
+import emoji4j.EmojiUtils;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.jda.entities.Message;
 import net.dv8tion.jda.entities.User;
@@ -42,7 +43,7 @@ public class DiscordEndPointMessage extends EndPointMessage
             parsedMessage += "\n" + attach.getUrl();
         }
 
-        this.setMessage(parsedMessage);
+        this.setMessage(EmojiUtils.shortCodify(parsedMessage));
         this.discordMessage = discordMessage;
     }
 }
