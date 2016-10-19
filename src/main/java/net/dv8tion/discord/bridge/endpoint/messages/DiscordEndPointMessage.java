@@ -43,7 +43,8 @@ public class DiscordEndPointMessage extends EndPointMessage
             parsedMessage += "\n" + attach.getUrl();
         }
 
-        this.setMessage(EmojiUtils.shortCodify(parsedMessage));
+        //this.setMessage(EmojiUtils.shortCodify(parsedMessage));
+        this.setMessage(parsedMessage);
         this.discordMessage = discordMessage;
     }
 }
