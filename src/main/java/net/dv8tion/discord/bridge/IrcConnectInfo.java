@@ -110,6 +110,7 @@ public class IrcConnectInfo
         builder.setAutoNickChange(true);
         System.out.println("Configured IRC AutoJoins: " + autojoinChannels.toString());
         builder.setAutoReconnect(true);
+        builder.setSocketTimeout(1000 * 30);
         builder.setVersion("Yuri " + YuriInfo.VERSION + " A Discord <-> IRC Relay bot.");
         for (String channel : autojoinChannels)
         {
