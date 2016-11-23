@@ -111,7 +111,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (event.getUser().getNick().equals("IServer") && event.getMessage().equals("[Server]"))
             return;
 
-        if (event.getMessage().startsWith("!status")) {
+        if (event.getMessage().startsWith("@status")) {
             checkStatus = true;
         }
 
