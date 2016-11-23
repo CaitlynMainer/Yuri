@@ -106,9 +106,14 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     @Override
     public void onMessage(MessageEvent<PircBotX> event)
     {
+        Boolean checkStatus = false;
         //Specific to the the Imaginescape IRC/Discord channel. Dumb minecraft server spits out an empty message that is really annoying.
         if (event.getUser().getNick().equals("IServer") && event.getMessage().equals("[Server]"))
             return;
+
+        if (event.getMessage().startsWith("!status")) {
+            checkStatus = true;
+        }
 
         //If this returns null, then this EndPoint isn't part of a bridge.
         EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
@@ -121,6 +126,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             {
                 for (User user : Yuri.getAPI().getUsers()) {
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
+                        if (checkStatus) {
+                            event.respond(user.getUsername() + " is currently " + user.getOnlineStatus());
+                        }
                         message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
