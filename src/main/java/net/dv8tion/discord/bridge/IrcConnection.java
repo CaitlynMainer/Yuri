@@ -23,6 +23,7 @@ import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
+import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.TimedHashMap;
 import net.dv8tion.discord.util.makeTiny;
 import net.dv8tion.jda.entities.Message;
@@ -212,12 +213,22 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         {
             EndPointMessage message = new DiscordEndPointMessage(e);
             String parsedMessage = message.getMessage();
+            String nick;
             if (!e.getMessage().getAttachments().isEmpty()) {
                 for (Message.Attachment attach : e.getMessage().getAttachments()) {
-                    parsedMessage += " " + makeTiny.getTinyURL(attach.getUrl());
+                    if (message.getSenderNick() != null) {
+                        nick = message.getSenderNick();
+                    } else {
+                        nick = message.getSenderName();
+                    }
+                    nick = AntiPing.antiPing(nick);
+                    parsedMessage = "";
+                    parsedMessage += "<"+nick+"> " + makeTiny.getTinyURL(attach.getUrl());
                 }
+                endPoint.sendMessage(parsedMessage.toString());
+            } else {
+                endPoint.sendMessage(message);
             }
-            endPoint.sendMessage(parsedMessage.toString());
         }
     }
 }
