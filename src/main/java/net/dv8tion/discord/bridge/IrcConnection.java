@@ -214,7 +214,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             String parsedMessage = message.getMessage();
             if (!e.getMessage().getAttachments().isEmpty()) {
                 for (Message.Attachment attach : e.getMessage().getAttachments()) {
-                    parsedMessage += " " makeTiny.getTinyURL(attach.getUrl());
+                    parsedMessage += " " + makeTiny.getTinyURL(attach.getUrl());
                 }
             }
             endPoint.sendMessage(parsedMessage.toString());
