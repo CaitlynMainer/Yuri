@@ -188,6 +188,27 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         }
     }
 
+    private String removeUrl(String commentstr)
+    {
+        String urlPattern = "((https?|ftp|gopher|telnet|file|Unsure|http):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)";
+        Pattern p = Pattern.compile(urlPattern,Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(commentstr);
+        int i = 0;
+        while (m.find()) {
+            commentstr = commentstr.replaceAll(m.group(i),"").trim();
+            i++;
+        }
+        return commentstr;
+    }
+
+    public String addSpace(String in) {
+        if (in.length() > 0) {
+            return in + " ";
+        } else {
+            return in;
+        }
+    }
+
     // -- Discord --
 
     @Override
@@ -212,8 +233,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (endPoint != null)
         {
             EndPointMessage message = new DiscordEndPointMessage(e);
-            String parsedMessage = message.getMessage();
+            String parsedMessage = "";
             String nick;
+            String tinyURL = "";
             if (!e.getMessage().getAttachments().isEmpty()) {
                 for (Message.Attachment attach : e.getMessage().getAttachments()) {
                     if (message.getSenderNick() != null) {
@@ -222,12 +244,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                         nick = message.getSenderName();
                     }
                     nick = AntiPing.antiPing(nick);
-                    parsedMessage = "";
-                    parsedMessage += "<"+nick+"> " + makeTiny.getTinyURL(attach.getUrl());
+                    tinyURL = makeTiny.getTinyURL(attach.getUrl());
+                    parsedMessage += "<"+nick+"> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
                 }
+                parsedMessage.replace(tinyURL, "");
                 endPoint.sendMessage(parsedMessage.toString());
             } else {
-                endPoint.sendMessage(message);
+                endPoint.sendMessage(message.getMessage());
             }
         }
     }
