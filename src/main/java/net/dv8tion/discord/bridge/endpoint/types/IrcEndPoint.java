@@ -88,6 +88,8 @@ public class IrcEndPoint extends EndPoint
         String[] lines =  Colors.removeColors(message.getMessage()).split("\n");
         for (String line : lines)
         {
+            System.out.println(line);
+
             boolean action = (line.charAt(0) == '_' && line.charAt(line.length() - 1) == '_');
             for (String segment : this.divideMessageForSending(line))
             {

@@ -2,6 +2,7 @@ package net.dv8tion.discord.bridge.endpoint.messages;
 
 import emoji4j.EmojiUtils;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
+import net.dv8tion.discord.util.makeTiny;
 import net.dv8tion.jda.entities.Message;
 import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
@@ -11,6 +12,8 @@ public class DiscordEndPointMessage extends EndPointMessage
     private GenericGuildMessageEvent discordEvent;
     private User discordUser;
     private Message discordMessage;
+
+
 
     public DiscordEndPointMessage(GenericGuildMessageEvent event)
     {
@@ -40,7 +43,7 @@ public class DiscordEndPointMessage extends EndPointMessage
         String parsedMessage = discordMessage.getContent();
         for (Message.Attachment attach : discordMessage.getAttachments())
         {
-            parsedMessage += "\n" + attach.getUrl();
+            parsedMessage += " " + makeTiny.getTinyURL(attach.getUrl());
         }
 
         //this.setMessage(EmojiUtils.shortCodify(parsedMessage));

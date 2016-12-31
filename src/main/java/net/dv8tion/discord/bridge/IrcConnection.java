@@ -23,6 +23,9 @@ import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
+import net.dv8tion.discord.util.TimedHashMap;
+import net.dv8tion.jda.entities.Message;
+import net.dv8tion.jda.entities.MessageEmbed;
 import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.events.Event;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
@@ -33,10 +36,7 @@ import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.hooks.ListenerAdapter;
-import org.pircbotx.hooks.events.ActionEvent;
-import org.pircbotx.hooks.events.ConnectEvent;
-import org.pircbotx.hooks.events.JoinEvent;
-import org.pircbotx.hooks.events.MessageEvent;
+import org.pircbotx.hooks.events.*;
 
 import java.io.IOException;
 import java.util.regex.Matcher;
@@ -49,6 +49,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     private String identifier;
     private Thread botThread;
     private PircBotX bot;
+    public static TimedHashMap messages = new TimedHashMap(600000, null );
+
 
     public IrcConnection(IrcConnectInfo info)
     {
@@ -60,6 +62,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         builder.setLogin(builder.getName());
         bot = new PircBotX(builder.buildConfiguration());
         this.open();
+
     }
 
     public void open()
@@ -132,12 +135,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                         message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
-                //if (!Yuri.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
-                //    User u = Yuri.getAPI().getUsersByName(matcher.group(0).replace("@", "")).get(0);
-                //    message.setMessage(message.getMessage().replace(u.getUsername(), "<@" + u.getId() + ">").replace("@<", "<"));
-                //}
             }
             endPoint.sendMessage(message);
+            messages.put(event.getChannel().getName().toString(), event.getUser().getNick().toString());
         }
     }
 
@@ -158,12 +158,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                         message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
                 }
-                //if (!Yuri.getAPI().getUsersByName(matcher.group(0).replace("@","")).isEmpty()) {
-                //    User u = Yuri.getAPI().getUsersByName(matcher.group(0).replace("@","")).get(0);
-                //    message.setMessage(message.getMessage().replace(u.getUsername(), "<@"+u.getId()+">").replace("@<","<"));
-                //}
             }
             endPoint.sendMessage(message);
+            messages.put(event.getChannel().getName().toString(), event.getUser().getNick().toString());
         }
     }
 
@@ -171,6 +168,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     public void onConnect(ConnectEvent<PircBotX> event)
     {
 
+    }
+
+    @Override
+    public void onQuit (QuitEvent<PircBotX> event) {
+        if (messages.containsValue(event.getUser().getNick())) {
+
+        }
     }
 
     @Override
@@ -206,7 +210,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (endPoint != null)
         {
             EndPointMessage message = new DiscordEndPointMessage(e);
-            endPoint.sendMessage(message);
+            String parsedMessage = message.getMessage();
+            if (!e.getMessage().getAttachments().isEmpty()) {
+                for (Message.Attachment attach : e.getMessage().getAttachments()) {
+                    parsedMessage += "\n" + attach.getUrl();
+                }
+            }
+            endPoint.sendMessage(parsedMessage.toString());
         }
     }
 }
