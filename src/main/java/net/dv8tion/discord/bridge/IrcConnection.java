@@ -250,14 +250,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 parsedMessage.replace(tinyURL, "");
                 endPoint.sendMessage(parsedMessage.toString());
             } else {
-                if (message.getSenderNick() != null) {
-                    nick = message.getSenderNick();
-                } else {
-                    nick = message.getSenderName();
-                }
-                nick = AntiPing.antiPing(nick);
-                parsedMessage += "<"+nick+"> " + message.getMessage();
-                endPoint.sendMessage(parsedMessage);
+                message = new DiscordEndPointMessage(e);
+                endPoint.sendMessage(message);
             }
         }
     }
