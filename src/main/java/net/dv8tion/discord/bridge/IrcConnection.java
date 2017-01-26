@@ -34,6 +34,8 @@ import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageDeleteEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageEmbedEvent;
 import net.dv8tion.jda.hooks.EventListener;
+import net.dv8tion.jda.managers.ChannelManager;
+import org.pircbotx.Channel;
 import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
 import org.pircbotx.exception.IrcException;
@@ -41,8 +43,13 @@ import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
 {
@@ -51,7 +58,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     private String identifier;
     private Thread botThread;
     private PircBotX bot;
-    public static TimedHashMap messages = new TimedHashMap(600000, null );
 
 
     public IrcConnection(IrcConnectInfo info)
@@ -109,6 +115,17 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
     // -- IRC --
     @Override
+    public void onTopic(TopicEvent<PircBotX> event) {
+        //If this returns null, then this EndPoint isn't part of a bridge.
+        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        if (endPoint != null){
+            ChannelManager chanMan = new ChannelManager(Yuri.getAPI().getTextChannelById(endPoint.toEndPointInfo().getChannelId()));
+            chanMan.setTopic(event.getTopic());
+            chanMan.update();
+        }
+    }
+
+    @Override
     public void onMessage(MessageEvent<PircBotX> event)
     {
         Boolean checkStatus = false;
@@ -139,7 +156,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 }
             }
             endPoint.sendMessage(message);
-            messages.put(event.getChannel().getName().toString(), event.getUser().getNick().toString());
         }
     }
 
@@ -162,7 +178,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 }
             }
             endPoint.sendMessage(message);
-            messages.put(event.getChannel().getName().toString(), event.getUser().getNick().toString());
         }
     }
 
@@ -174,9 +189,26 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
     @Override
     public void onQuit (QuitEvent<PircBotX> event) {
-        if (messages.containsValue(event.getUser().getNick())) {
 
+        String nick = event.getUser().getNick();
+        for (String channelName : Yuri.channelNicks.keySet()) {
+            if (Yuri.channelNicks.get(channelName).contains(nick)) {
+                EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, getChannel(channelName)));
+                endPoint.sendMessage(event.getUser().getNick() + " has quit IRC (" + event.getReason() + ")" );
+            }
+            Yuri.channelNicks.get(channelName).remove(nick);
         }
+        updateNickList();
+    }
+
+    @Override
+    public void onPart (PartEvent<PircBotX> event) {
+        //if (messages.containsValue(event.getUser().getNick())) {
+
+        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        endPoint.sendMessage(event.getUser().getNick() + " has left " + event.getChannel().getName() + " on IRC (" + event.getReason() + ")");
+        //}
+        updateNickList(event.getChannel());
     }
 
     @Override
@@ -185,6 +217,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (event.getBot().getUserBot().equals(event.getUser())) {
             System.out.println("Joined: " + event.getChannel().getName());
             EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        } else {
+            updateNickList(event.getChannel());
+            EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+            if (endPoint != null)
+            {
+                endPoint.sendMessage(event.getUser().getNick() + " has joined " + event.getChannel().getName() + " on IRC");
+            }
         }
     }
 
@@ -254,5 +293,54 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 endPoint.sendMessage(message);
             }
         }
+    }
+    public void updateNickList() {
+        if (!this.getIrcBot().isConnected()) {
+            return;
+        }
+        for (Channel channel : this.getIrcBot().getUserChannelDao().getAllChannels()) {
+            this.updateNickList(channel);
+        }
+    }
+
+    public void updateNickList(Channel channel) {
+        if (!this.getIrcBot().isConnected()) {
+            return;
+        }
+        // Build current list of names in channel
+        ArrayList<String> users = new ArrayList<>();
+        for (org.pircbotx.User user : channel.getUsers()) {
+            //plugin.logDebug("N: " + user.getNick());
+            users.add(user.getNick());
+        }
+        try {
+            Yuri.wl.tryLock(10, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException ex) {
+            return;
+        }
+        try {
+            String channelName = channel.getName();
+            if (Yuri.channelNicks.containsKey(channelName)) {
+                for (String name : Yuri.channelNicks.get(channelName)) {
+                    //plugin.logDebug("O: " + name);
+                    if (!users.contains(name)) {
+                        //old code
+                    }
+                }
+                Yuri.channelNicks.remove(channelName);
+            }
+            Yuri.channelNicks.put(channelName, users);
+        } finally {
+            Yuri.wl.unlock();
+        }
+    }
+    public Channel getChannel(String channelName) {
+        Channel channel = null;
+        for (Channel c : this.getIrcBot().getUserChannelDao().getAllChannels()) {
+            if (c.getName().equalsIgnoreCase(channelName)) {
+                return c;
+            }
+        }
+        return channel;
     }
 }

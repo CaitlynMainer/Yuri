@@ -20,6 +20,7 @@ import net.dv8tion.discord.bridge.IrcConnection;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.commands.*;
+import net.dv8tion.discord.util.CaseInsensitiveMap;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.GoogleSearch;
 import net.dv8tion.jda.JDA;
@@ -34,7 +35,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Yuri
 {
@@ -54,9 +59,14 @@ public class Yuri
 
     private static JDA api;
     private static List<IrcConnection> ircConnections;
+    public static ReadWriteLock rwl;
+    public static Lock wl;
+    public static CaseInsensitiveMap<Collection<String>> channelNicks;
 
     public static void main(String[] args) throws InterruptedException, UnsupportedEncodingException
     {
+        rwl = new ReentrantReadWriteLock();
+        wl = rwl.writeLock();
         if (System.getProperty("file.encoding").equals("UTF-8"))
         {
             setupBot();
@@ -100,6 +110,7 @@ public class Yuri
     {
         try
         {
+
             File f = new File("yui.db");
             if(f.exists()){
                 boolean renameResult = f.renameTo(new File("yuri.db"));
@@ -111,6 +122,7 @@ public class Yuri
             }else{
                 System.out.println("No DB created yet, making a fresh one.");
             }
+            channelNicks = new CaseInsensitiveMap<>();
             Settings settings = SettingsManager.getInstance().getSettings();
 
             JDABuilder jdaBuilder = new JDABuilder().setBotToken(settings.getBotToken());
