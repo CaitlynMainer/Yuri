@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link CaseInsensitiveMap} is a {@link Map} from <code>String</code> keys to
  * values which is case-insensitive and case-preserving with respect to the keys
  * in the map.
- * <p />
+ *
  *
  * <strong>Concurrent Semantics</strong>
  *
@@ -345,7 +345,7 @@ public class CaseInsensitiveMap<V> extends AbstractMap<String, V> {
         /**
          * Convert the given key <code>Object</code> to a
          * {@link CaseInsensitiveKey}.
-         * <p/>
+         *
          * Pre-condition: <code>key</code> instanceof <code>String</code>
          *
          * @param key the key to be converted
