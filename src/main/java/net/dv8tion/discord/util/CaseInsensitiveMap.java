@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * in the map.
  * <p />
  *
- * <strong>Concurrent Semantics</strong><br />
+ * <strong>Concurrent Semantics</strong>
  *
  * This class is not necessarily thread safe.
  *
