@@ -66,7 +66,7 @@ task fatJar(type: Jar) {
 }
 
 artifacts {
-    archives sourcesJar
+    archives javadocJar, sourcesJar
 }
 repositories {
     jcenter()
