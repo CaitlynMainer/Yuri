@@ -212,6 +212,29 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     }
 
     @Override
+    public void onNickChange (NickChangeEvent<PircBotX> event) {
+        String nick = event.getOldNick();
+        for (String channelName : Yuri.channelNicks.keySet()) {
+            if (Yuri.channelNicks.get(channelName).contains(nick)) {
+                EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, getChannel(channelName)));
+                endPoint.sendMessage(nick + " is now known as " + event.getNewNick());
+            }
+            Yuri.channelNicks.get(channelName).remove(nick);
+        }
+        updateNickList();
+    }
+
+    @Override
+    public void onKick (KickEvent<PircBotX> event) {
+        //if (messages.containsValue(event.getUser().getNick())) {
+
+        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        endPoint.sendMessage(event.getRecipient().getNick() + " has been kicked from " + event.getChannel().getName() + " on IRC by " + event.getUser().getNick() + " (" + event.getReason() + ")");
+        //}
+        updateNickList(event.getChannel());
+    }
+
+    @Override
     public void onJoin(JoinEvent<PircBotX> event)
     {
         if (event.getBot().getUserBot().equals(event.getUser())) {
