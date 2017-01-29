@@ -307,7 +307,14 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                     }
                     nick = AntiPing.antiPing(nick);
                     tinyURL = makeTiny.getTinyURL(attach.getUrl());
-                    parsedMessage += "<"+nick+"> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
+                    String str = message.getMessage();
+                    String[] splited = str.split(" ");
+                    if (splited[0].equalsIgnoreCase("~w")) {
+                        parsedMessage += message.getMessage();
+                    } else {
+                        parsedMessage += "<"+nick+"> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
+                    }
+
                 }
                 parsedMessage.replace(tinyURL, "");
                 endPoint.sendMessage(parsedMessage.toString());
