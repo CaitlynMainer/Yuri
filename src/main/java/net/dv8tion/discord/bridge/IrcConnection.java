@@ -24,15 +24,15 @@ import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
 import net.dv8tion.discord.util.AntiPing;
-import net.dv8tion.discord.util.TimedHashMap;
 import net.dv8tion.discord.util.makeTiny;
+import net.dv8tion.jda.entities.Guild;
 import net.dv8tion.jda.entities.Message;
-import net.dv8tion.jda.entities.MessageEmbed;
 import net.dv8tion.jda.entities.User;
 import net.dv8tion.jda.events.Event;
+import net.dv8tion.jda.events.ReadyEvent;
+import net.dv8tion.jda.events.guild.member.GuildMemberNickChangeEvent;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.guild.GuildMessageDeleteEvent;
-import net.dv8tion.jda.events.message.guild.GuildMessageEmbedEvent;
 import net.dv8tion.jda.hooks.EventListener;
 import net.dv8tion.jda.managers.ChannelManager;
 import org.pircbotx.Channel;
@@ -47,9 +47,7 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.HashMap;
 
 public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
 {
@@ -58,6 +56,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     private String identifier;
     private Thread botThread;
     private PircBotX bot;
+    private HashMap<String, User> userToNick = new HashMap<>();
 
 
     public IrcConnection(IrcConnectInfo info)
@@ -147,11 +146,21 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             while(matcher.find())
             {
                 for (User user : Yuri.getAPI().getUsers()) {
-                    if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
+                    User checkUser = userToNick.get(matcher.group(0).replace("@", ""));
+
+                    if (userToNick.containsKey(matcher.group(0).replace("@", "")) && user.equals(checkUser)) {
                         if (checkStatus) {
                             event.respond(user.getUsername() + " is currently " + user.getOnlineStatus());
                         }
-                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
+                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
+                        endPoint.sendMessage(message);
+                        return;
+                    }
+                    if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@", ""))) {
+                        if (checkStatus) {
+                            event.respond(user.getUsername() + " is currently " + user.getOnlineStatus());
+                        }
+                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
                     }
                 }
             }
@@ -172,6 +181,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             while(matcher.find())
             {
                 for (User user : Yuri.getAPI().getUsers()) {
+                    User checkUser = userToNick.get(matcher.group(0).replace("@", ""));
+
+                    if (userToNick.containsKey(matcher.group(0).replace("@", "")) && user.equals(checkUser)) {
+                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
+                        endPoint.sendMessage(message);
+                        return;
+                    }
                     if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@",""))) {
                         message.setMessage(message.getMessage().replace(matcher.group(0).replace("@",""), user.getAsMention()).replace("@<","<"));
                     }
@@ -274,8 +290,38 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     // -- Discord --
 
     @Override
-    public void onEvent(Event event)
-    {
+    public void onEvent(Event event) {
+        if (event instanceof ReadyEvent) {
+            for (Guild currGuild : event.getJDA().getGuilds()) {
+                for (User currUser : currGuild.getUsers()) {
+                    String userNick;
+                    if (currGuild.getNicknameForUser(currUser) != null) {
+                        userNick = (currGuild.getNicknameForUser(currUser));
+                    } else {
+                        userNick = currUser.getUsername();
+                    }
+                    System.out.println("Adding " + currUser.getUsername() + ":" + userNick + " to the mapping!");
+                    userToNick.put(userNick, currUser);
+                }
+            }
+        }
+
+        if (event instanceof GuildMemberNickChangeEvent) {
+            GuildMemberNickChangeEvent e = (GuildMemberNickChangeEvent) event;
+            Guild currGuild = e.getGuild();
+            User currUser = e.getUser();
+            String userNick;
+            if (currGuild.getNicknameForUser(currUser) != null) {
+                userNick = (currGuild.getNicknameForUser(currUser));
+            } else {
+                userNick = currUser.getUsername();
+            }
+            System.out.println("Adding " + userNick + " to the mapping!");
+            userToNick.put(userNick, currUser);
+
+        }
+
+
         //We only deal with TextChannel Message events
         if (!(event instanceof GenericGuildMessageEvent))
             return;
@@ -294,6 +340,13 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromDiscordChannel(e.getChannel()));
         if (endPoint != null)
         {
+            String userNick;
+            if (e.getAuthorNick() != null) {
+                userNick = e.getAuthorNick();
+            } else {
+                userNick = e.getAuthorName();
+            }
+            userToNick.put(userNick, e.getAuthor());
             EndPointMessage message = new DiscordEndPointMessage(e);
             String parsedMessage = "";
             String nick;
@@ -309,12 +362,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                     tinyURL = makeTiny.getTinyURL(attach.getUrl());
                     String str = message.getMessage();
                     String[] splited = str.split(" ");
-                    if (splited[0].equalsIgnoreCase("~w")) {
-                        parsedMessage += message.getMessage();
-                    } else {
-                        parsedMessage += "<"+nick+"> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
-                    }
-
+                    parsedMessage += "<"+nick+"> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
                 }
                 parsedMessage.replace(tinyURL, "");
                 endPoint.sendMessage(parsedMessage.toString());
