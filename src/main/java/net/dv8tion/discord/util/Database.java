@@ -71,6 +71,17 @@ public class Database
                         "FOREIGN KEY (listId) REFERENCES TodoLists(id) ON DELETE CASCADE" +
                     ")");
 
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " +
+                    "EnabledChans(" +
+                    "ChannelID VARCHAR(52) NOT NULL" +
+                    ")");
+
+
+            //Relay more IRC events
+            preparedStatements.put("addChan", conn.prepareStatement("REPLACE INTO EnabledChans (ChannelID) VALUES (?)"));
+            preparedStatements.put("getChan", conn.prepareStatement("SELECT ChannelID FROM EnabledChans WHERE ChannelID = ?"));
+            preparedStatements.put("delChan", conn.prepareStatement("DELETE FROM EnabledChans WHERE ChannelID = ?"));
+
             //Permissions
             preparedStatements.put(Permissions.ADD_OP, conn.prepareStatement("REPLACE INTO Ops (id) VALUES (?)"));
             preparedStatements.put(Permissions.GET_OPS, conn.prepareStatement("SELECT id FROM Ops"));

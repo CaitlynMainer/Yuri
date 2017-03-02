@@ -1,52 +1,52 @@
-/**
- *     Copyright 2015-2016 Austin Keener
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-//Author Caitlyn Mainer (Michiyo/Mimiru)
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
 import net.dv8tion.discord.Yuri;
+import net.dv8tion.discord.util.Database;
 import net.dv8tion.jda.events.message.GenericMessageEvent;
 import net.dv8tion.jda.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.events.message.priv.GenericPrivateMessageEvent;
 import net.dv8tion.jda.managers.AccountManager;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class SetGame extends Command
-{
-
+/**
+ * Created by Administrator on 3/2/2017.
+ */
+public class RelayMoreInfo extends Command {
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
-        String game = "";
-        AccountManager accountManager = Yuri.getAPI().getAccountManager();
         if (!Permissions.getPermissions().isOp(e.getAuthor()))
         {
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);
             return;
+        } else {
+            if (args[1].equalsIgnoreCase("true")) {
+                try {
+                    PreparedStatement addChan = Database.getInstance().getStatement("addChan");
+                    addChan.setString(1,  e.getChannel().getId());
+                    addChan.executeUpdate();
+                    sendMessage(e, "Enabled");
+                } catch (SQLException e1) {
+                    e1.printStackTrace();
+                }
+            } else {
+                try {
+                    PreparedStatement delChan = Database.getInstance().getStatement("delChan");
+                    delChan.setString(1,  e.getChannel().getId());
+                    delChan.executeUpdate();
+                    sendMessage(e, "Disabled");
+                } catch (SQLException e1) {
+                    e1.printStackTrace();
+                }
+            }
         }
-        for (int i=1;i < args.length;i++)
-        {
-            game += " " + args[i];
-        }
-        accountManager.setGame(game);
     }
 
     @Override
@@ -70,26 +70,26 @@ public class SetGame extends Command
     @Override
     public List<String> getAliases()
     {
-        return Arrays.asList("!setgame");
+        return Arrays.asList("!ircrelayevents");
     }
 
     @Override
     public String getDescription()
     {
-        return "Sets the bot's game.";
+        return "irc relay events";
     }
 
     @Override
     public String getName()
     {
-        return "Set Game";
+        return "ircrelayevents";
     }
 
     @Override
     public List<String> getUsageInstructions()
     {
         return Collections.singletonList(
-                "!setgame\n"
-                + "Changes the bot's game to the provided string");
+                "!ircrelayevents\n"
+                        + "true/false enables / disables relaying of more IRC events like join/part/nick change");
     }
 }

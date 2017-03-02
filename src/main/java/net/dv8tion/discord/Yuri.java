@@ -34,9 +34,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -114,6 +118,11 @@ public class Yuri
             File f = new File("yuri.db");
             if(!f.exists()){
                 System.out.println("No DB created yet, making a fresh one.");
+                try {
+                    f.createNewFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             channelNicks = new CaseInsensitiveMap<>();
             Settings settings = SettingsManager.getInstance().getSettings();
@@ -147,6 +156,7 @@ public class Yuri
             jdaBuilder.addListener(help.registerCommand(new UptimeCommand()));
             jdaBuilder.addListener(help.registerCommand(new SetAvatar()));
             jdaBuilder.addListener(help.registerCommand(new SetGame()));
+            jdaBuilder.addListener(help.registerCommand(new RelayMoreInfo()));
             for (IrcConnectInfo info  : settings.getIrcConnectInfos())
             {
                 if (info.getHost() == null || info.getHost().isEmpty())
