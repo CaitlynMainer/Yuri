@@ -26,6 +26,7 @@ import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.types.IrcEndPoint;
 import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.Database;
+import net.dv8tion.discord.util.PasteUtils;
 import net.dv8tion.discord.util.makeTiny;
 import net.dv8tion.jda.entities.Guild;
 import net.dv8tion.jda.entities.Message;
@@ -131,11 +132,19 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
     @Override
     public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
-        String pmTo = event.getMessage().split(" ")[0].replace(":", "");
-        String pmMessage = event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> ");
-        if (userToNick.containsKey(pmTo)) {
-            User pmToUser = userToNick.get(pmTo);
-            pmToUser.getPrivateChannel().sendMessage(pmMessage);
+        if (event.getMessage().startsWith("!users")) {
+            String users = "";
+            for(String currentKey : userToNick.keySet()) {
+                users += "User: " + userToNick.get(currentKey).getUsername().replace("\n", "").replace("\r", "") + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";
+            }
+            event.respond(PasteUtils.paste("Current Discord users:\r\n" + users, false));
+        } else {
+            String pmTo = event.getMessage().split(" ")[0].replace(":", "");
+            String pmMessage = event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> ");
+            if (userToNick.containsKey(pmTo)) {
+                User pmToUser = userToNick.get(pmTo);
+                pmToUser.getPrivateChannel().sendMessage(pmMessage);
+            }
         }
     }
 
