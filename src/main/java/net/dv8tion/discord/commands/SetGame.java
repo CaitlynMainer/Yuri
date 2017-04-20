@@ -18,26 +18,44 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
+import net.dv8tion.jda.core.events.message.*;
 import net.dv8tion.discord.Yuri;
-import net.dv8tion.jda.events.message.GenericMessageEvent;
-import net.dv8tion.jda.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
-import net.dv8tion.jda.events.message.priv.GenericPrivateMessageEvent;
-import net.dv8tion.jda.managers.AccountManager;
+import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.entities.Game;
+import net.dv8tion.jda.core.entities.Icon;
+import net.dv8tion.jda.core.entities.SelfUser;
+import net.dv8tion.jda.core.managers.AccountManager;
+import net.dv8tion.jda.core.managers.AccountManagerUpdatable;
 
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
 
 public class SetGame extends Command
 {
 
+    private TreeMap<String, Command> commands;
+
+    public SetGame()
+    {
+        commands = new TreeMap<>();
+    }
+
+    public Command registerCommand(Command command)
+    {
+        commands.put(command.getAliases().get(0), command);
+        return command;
+    }
+	
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
         String game = "";
-        AccountManager accountManager = Yuri.getAPI().getAccountManager();
-        if (!Permissions.getPermissions().isOp(e.getAuthor()))
+       if (!Permissions.getPermissions().isOp(e.getAuthor()))
         {
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);
             return;
@@ -46,31 +64,14 @@ public class SetGame extends Command
         {
             game += " " + args[i];
         }
-        accountManager.setGame(game);
-    }
-
-    @Override
-    public void onGenericMessage(GenericMessageEvent e)
-    {
-        //Don't care about Delete and Embed events. (both have null messages).
-        if (e.getMessage() == null)
-            return;
-
-        if (e instanceof GenericGuildMessageEvent)
-        {
-            GenericGuildMessageEvent event = (GenericGuildMessageEvent) e;
-            if (event.getGuild().getId().equals("107563502712954880"))  //Gaming Bunch Guild Id
-                System.out.println((event.getMessage().isEdited() ? "# " : "") + "[#" + event.getChannel().getName() + "] <" + event.getAuthor().getUsername() + "> " + event.getMessage().getContent());
-        }
-
-        if (e instanceof GenericPrivateMessageEvent)
-            System.out.println((e.getMessage().isEdited() ? "# " : "") + "[Private Message] <" + e.getAuthor().getUsername() + "> " + e.getMessage().getContent());
+        game = game.trim();
+        Yuri.getAPI().getPresence().setGame(Game.of(game));
     }
 
     @Override
     public List<String> getAliases()
     {
-        return Arrays.asList("!setgame");
+        return Arrays.asList("!setgame", "@setgame");
     }
 
     @Override

@@ -15,10 +15,11 @@
  */
 package net.dv8tion.discord.bridge;
 
-import net.dv8tion.discord.YuriInfo;
 import org.pircbotx.Configuration;
 import org.pircbotx.PircBotX;
 import org.pircbotx.cap.SASLCapHandler;
+
+import net.dv8tion.discord.YuriInfo;
 
 import java.util.List;
 
@@ -31,6 +32,7 @@ public class IrcConnectInfo
     private String identNick;
     private String identPass;
     private List<String> autojoinChannels;
+	private boolean useSASL;
 
     public String getIdentifier()
     {
@@ -102,27 +104,40 @@ public class IrcConnectInfo
         this.autojoinChannels = autojoinChannels;
     }
 
+    public Boolean getUseSASL(){
+    	return useSASL;
+    }
+    
+	public void setUseSASL(boolean b) {
+		this.useSASL = b;
+	}
+    
     public Configuration.Builder<PircBotX> getIrcConfigBuilder()
     {
         Configuration.Builder<PircBotX> builder = new Configuration.Builder<PircBotX>();
         builder.setName(nick);
-        builder.setServer(host, port);
-        builder.setAutoNickChange(true);
-        System.out.println("Configured IRC AutoJoins: " + autojoinChannels.toString());
-        builder.setAutoReconnect(true);
         builder.setSocketTimeout(1000 * 30);
         builder.setVersion("Yuri " + YuriInfo.VERSION + " A Discord <-> IRC Relay bot.");
+        if (identNick != null && !identNick.isEmpty())
+        {
+            builder.setLogin(identNick);
+            if (identPass != null && !identPass.isEmpty())
+            {
+                if (getUseSASL())
+                {
+                    builder.setCapEnabled(true);
+                    builder.addCapHandler(new SASLCapHandler(getIdentNick(), getIdentPass()));
+                }
+                else
+                    builder.setNickservPassword(identPass);
+            }
+        }
+        builder.setServer(host, port);
+        builder.setAutoNickChange(true);
         for (String channel : autojoinChannels)
         {
             builder.addAutoJoinChannel(channel);
-            System.out.println("Adding " + channel + " to autojoins");
         }
-
-        builder.setCapEnabled(true);
-        if (!getIdentPass().isEmpty())
-            builder.addCapHandler(new SASLCapHandler(getIdentNick(), getIdentPass()));
-            //builder.setNickservPassword(getIdentPass());
-
         return builder;
     }
 }

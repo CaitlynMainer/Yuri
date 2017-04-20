@@ -21,7 +21,6 @@ import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
 import org.pircbotx.Channel;
-import org.pircbotx.Colors;
 
 public class IrcEndPoint extends EndPoint
 {
@@ -77,32 +76,22 @@ public class IrcEndPoint extends EndPoint
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        this.getChannel().send().message( Colors.removeColors(message));
+        this.getChannel().send().message(message);
     }
-
+   
     @Override
     public void sendMessage(EndPointMessage message)
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        String[] lines =  Colors.removeColors(message.getMessage()).split("\n");
+        String[] lines = message.getMessage().split("\n");
         for (String line : lines)
         {
-            System.out.println(line);
-
-            boolean action = (line.charAt(0) == '_' && line.charAt(line.length() - 1) == '_');
             for (String segment : this.divideMessageForSending(line))
             {
                 String username = message.getSenderName();
-                String nickname = message.getSenderNick();
-                if (nickname != null) {
-                    username = nickname;
-                }
                 StringBuilder builder = new StringBuilder();
-                if (action)
-                    builder.append("* ");
-                else
-                    builder.append("<");
+                builder.append("<");
                 if (username.length() > 1)
                 {
                     int midway = username.length() / 2;
@@ -112,17 +101,50 @@ public class IrcEndPoint extends EndPoint
                 }
                 else
                     builder.append(username);
-                if (action)
+                builder.append("> ");
+                builder.append(segment);
+                this.sendMessage(builder.toString());
+            }
+        }
+    }
+    
+    @Override
+    public void sendAction(String message)
+    {
+        if (!connected)
+            throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
+        if(message.endsWith("_"))
+        {
+        	message = message.substring(0,message.length() - 1);
+        }
+        this.getChannel().send().message("* " + message.replaceFirst("_", ""));
+    }
+    
+    @Override
+    public void sendAction(EndPointMessage message)
+    {
+        if (!connected)
+            throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
+        String[] lines = message.getMessage().split("\n");
+        for (String line : lines)
+        {
+            for (String segment : this.divideMessageForSending(line))
+            {
+                String username = message.getSenderName();
+                StringBuilder builder = new StringBuilder();
+                builder.append("<");
+                if (username.length() > 1)
                 {
-                    builder.append(" ");
-                    builder.append(segment.substring(1, segment.length()-1));
+                    int midway = username.length() / 2;
+                    builder.append(username.substring(0, midway));
+                    builder.append(NAME_BREAK_CHAR);
+                    builder.append(username.substring(midway));
                 }
                 else
-                {
-                    builder.append("> ");
-                    builder.append(segment);
-                }
-                this.sendMessage(builder.toString());
+                    builder.append(username);
+                builder.append("> ");
+                builder.append(segment);
+                this.sendAction(builder.toString());
             }
         }
     }

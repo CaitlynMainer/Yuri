@@ -16,10 +16,10 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.YuriInfo;
-import net.dv8tion.jda.JDAInfo;
-import net.dv8tion.jda.MessageBuilder;
-import net.dv8tion.jda.entities.User;
-import net.dv8tion.jda.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.core.JDAInfo;
+import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,31 +30,19 @@ public class InfoCommand extends Command
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
-        String creatorName;
-        User dv8User = e.getJDA().getUserById("107562988810027008");
-
-        if (dv8User != null)
-        {
-            if (e.getGuild().getUsers().contains(dv8User))
-                creatorName = "<@" + dv8User.getId() + ">";
-            else
-                creatorName = dv8User.getUsername() + " *(#" + dv8User.getDiscriminator() + ")*";
-        }
-        else
-            creatorName = "DV8FromTheWorld";
 
         MessageBuilder builder = new MessageBuilder();
-        builder.appendString("__Yui Information__\n")
-                .appendString("    **Version**:       " + YuriInfo.VERSION.toString().replace("_", "\\_") + "\n")
-                .appendString("    **ID**:                " + e.getJDA().getSelfInfo().getId() + "\n")
-                .appendString("__Creator__\n")
-                .appendString("    **Name**:          " + creatorName + "\n")
-                .appendString("    **ID**:                107562988810027008\n")
-                .appendString("    **Github**:        <http://code.dv8tion.net>\n")
-                .appendString("__Development__\n")
-                .appendString("    **Language**:   Java 8\n")
-                .appendString("    **Library**:        JDA - v" + JDAInfo.VERSION + "\n")
-                .appendString("    **Source**:        <https://github.com/DV8FromTheWorld/Yuri>");
+        builder.append("__Yui Information__\n")
+                .append("    **Version**:       " + YuriInfo.VERSION.toString().replace("_", "\\_") + "\n")
+                .append("    **ID**:                " + e.getJDA().getSelfUser().getId() + "\n")
+                .append("__Creator__\n")
+                .append("    **Name**:          DV8FromTheWorld\n")
+                .append("    **ID**:                107562988810027008\n")
+                .append("    **Github**:        <http://code.dv8tion.net>\n")
+                .append("__Development__\n")
+                .append("    **Language**:   Java 8\n")
+                .append("    **Library**:        JDA - v" + JDAInfo.VERSION + "\n")
+                .append("    **Source**:        <https://github.com/DV8FromTheWorld/Yui>");
         sendMessage(e, builder.build());
     }
 
@@ -67,18 +55,18 @@ public class InfoCommand extends Command
     @Override
     public String getDescription()
     {
-        return "Provides information about Yuri.";
+        return "Provides information about Yui.";
     }
 
     @Override
     public String getName()
     {
-        return "Yuri Information";
+        return "Yui Information";
     }
 
     @Override
     public List<String> getUsageInstructions()
     {
-        return Arrays.asList(".info - Prints all information pertaining to the current instance of Yuri.");
+        return Arrays.asList(".info - Prints all information pertaining to the current instance of Yui.");
     }
 }

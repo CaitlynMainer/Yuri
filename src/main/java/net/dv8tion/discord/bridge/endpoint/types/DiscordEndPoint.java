@@ -20,11 +20,8 @@ import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
-import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
-import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
-import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
-import net.dv8tion.jda.entities.Guild;
-import net.dv8tion.jda.entities.TextChannel;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.TextChannel;
 
 public class DiscordEndPoint extends EndPoint
 {
@@ -77,7 +74,7 @@ public class DiscordEndPoint extends EndPoint
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        getChannel().sendMessage(message);
+        getChannel().sendMessage(message).queue();
     }
 
     @Override
@@ -85,19 +82,26 @@ public class DiscordEndPoint extends EndPoint
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        if (message instanceof DiscordEndPointMessage)
+        switch (message.getType())
         {
-            getChannel().sendMessage(((DiscordEndPointMessage) message).getDiscordMessage());
-        }
-        else if (message instanceof IrcEndPointMessage)
-        {
-            for (String segment : this.divideMessageForSending(message.getMessage()))
-                sendMessage(String.format("<%s> %s", message.getSenderName(), segment));
-        }
-        else if (message instanceof IrcActionEndPointMessage)
-        {
-            for (String segment : this.divideMessageForSending(message.getMessage()))
-                sendMessage(String.format("* %s %s", message.getSenderName(), segment));
+            case DISCORD:
+                getChannel().sendMessage(message.getDiscordMessage()).queue();
+                break;
+            default:
+                for (String segment : this.divideMessageForSending(message.getMessage()))
+                    sendMessage(String.format("<%s> %s", message.getSenderName(), segment));
         }
     }
+
+	@Override
+	public void sendAction(String message) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void sendAction(EndPointMessage message) {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -99,6 +99,7 @@ public class SettingsManager {
         IrcConnectInfo connectDefault = new IrcConnectInfo();
         connectDefault.setIdentifier("IrcConnection1");
         connectDefault.setHost("");
+        connectDefault.setUseSASL(true);
         connectDefault.setPort(6667);
         connectDefault.setNick("");
         connectDefault.setIdentNick("");
@@ -150,7 +151,6 @@ public class SettingsManager {
             settings.setProxyPort(defaults.getProxyPort());
             modified = true;
         }
-
         if (modified)
             saveSettings();
     }

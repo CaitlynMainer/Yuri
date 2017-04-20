@@ -27,6 +27,8 @@ public abstract class EndPoint
     public abstract int getMaxMessageLength();
     public abstract void sendMessage(String message);
     public abstract void sendMessage(EndPointMessage message);
+	public abstract void sendAction(String message);
+	public abstract void sendAction(EndPointMessage message);
 
     protected EndPoint(EndPointType connectionType)
     {

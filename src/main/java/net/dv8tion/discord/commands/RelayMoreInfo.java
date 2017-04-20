@@ -1,24 +1,33 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
-import net.dv8tion.discord.Yuri;
+import net.dv8tion.jda.core.events.message.*;
 import net.dv8tion.discord.util.Database;
-import net.dv8tion.jda.events.message.GenericMessageEvent;
-import net.dv8tion.jda.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
-import net.dv8tion.jda.events.message.priv.GenericPrivateMessageEvent;
-import net.dv8tion.jda.managers.AccountManager;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * Created by Administrator on 3/2/2017.
  */
 public class RelayMoreInfo extends Command {
+    private TreeMap<String, Command> commands;
+
+    public RelayMoreInfo()
+    {
+        commands = new TreeMap<>();
+    }
+
+    public Command registerCommand(Command command)
+    {
+        commands.put(command.getAliases().get(0), command);
+        return command;
+    }
+    
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
@@ -49,28 +58,11 @@ public class RelayMoreInfo extends Command {
         }
     }
 
-    @Override
-    public void onGenericMessage(GenericMessageEvent e)
-    {
-        //Don't care about Delete and Embed events. (both have null messages).
-        if (e.getMessage() == null)
-            return;
-
-        if (e instanceof GenericGuildMessageEvent)
-        {
-            GenericGuildMessageEvent event = (GenericGuildMessageEvent) e;
-            if (event.getGuild().getId().equals("107563502712954880"))  //Gaming Bunch Guild Id
-                System.out.println((event.getMessage().isEdited() ? "# " : "") + "[#" + event.getChannel().getName() + "] <" + event.getAuthor().getUsername() + "> " + event.getMessage().getContent());
-        }
-
-        if (e instanceof GenericPrivateMessageEvent)
-            System.out.println((e.getMessage().isEdited() ? "# " : "") + "[Private Message] <" + e.getAuthor().getUsername() + "> " + e.getMessage().getContent());
-    }
 
     @Override
     public List<String> getAliases()
     {
-        return Arrays.asList("!ircrelayevents");
+        return Arrays.asList("!ircrelayevents", "@ircrelayevents");
     }
 
     @Override

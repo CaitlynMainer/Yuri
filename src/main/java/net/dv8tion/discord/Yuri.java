@@ -20,27 +20,27 @@ import net.dv8tion.discord.bridge.IrcConnection;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.commands.*;
+import net.dv8tion.discord.music.PlayerControl;
 import net.dv8tion.discord.util.CaseInsensitiveMap;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.GoogleSearch;
-import net.dv8tion.jda.JDA;
-import net.dv8tion.jda.JDABuilder;
-import net.dv8tion.jda.entities.Guild;
-import net.dv8tion.jda.entities.TextChannel;
+import net.dv8tion.jda.core.AccountType;
+import net.dv8tion.jda.core.JDA;
+import net.dv8tion.jda.core.JDABuilder;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHost;
 
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -66,7 +66,7 @@ public class Yuri
     public static ReadWriteLock rwl;
     public static Lock wl;
     public static CaseInsensitiveMap<Collection<String>> channelNicks;
-
+    
     public static void main(String[] args) throws InterruptedException, UnsupportedEncodingException
     {
         rwl = new ReentrantReadWriteLock();
@@ -90,7 +90,7 @@ public class Yuri
         //This is code especially written for running and testing this program in an IDE that doesn't compile to .jar when running.
         if (!decodedPath.endsWith(".jar"))
         {
-            return new File("Yuri.jar");
+            return new File("Yui.jar");
         }
         return new File(decodedPath);   //We use File so that when we send the path to the ProcessBuilder, we will be using the proper System path formatting.
     }
@@ -114,27 +114,16 @@ public class Yuri
     {
         try
         {
-
-            File f = new File("yuri.db");
-            if(!f.exists()){
-                System.out.println("No DB created yet, making a fresh one.");
-                try {
-                    f.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            channelNicks = new CaseInsensitiveMap<>();
+        	channelNicks = new CaseInsensitiveMap<>();
             Settings settings = SettingsManager.getInstance().getSettings();
 
-            JDABuilder jdaBuilder = new JDABuilder().setBotToken(settings.getBotToken());
+            JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT).setToken(settings.getBotToken());
             Database.getInstance();
             Permissions.setupPermissions();
             ircConnections = new ArrayList<IrcConnection>();
 
             HelpCommand help = new HelpCommand();
             jdaBuilder.addListener(help.registerCommand(help));
-            jdaBuilder.addListener(help.registerCommand(new TestCommand()));
             if (settings.getGoogleApiKey() != null && !settings.getGoogleApiKey().isEmpty())
             {
                 GoogleSearch.setup(settings.getGoogleApiKey());
@@ -157,6 +146,10 @@ public class Yuri
             jdaBuilder.addListener(help.registerCommand(new SetAvatar()));
             jdaBuilder.addListener(help.registerCommand(new SetGame()));
             jdaBuilder.addListener(help.registerCommand(new RelayMoreInfo()));
+
+            //Audio stuff
+            jdaBuilder.addListener(new PlayerControl());
+
             for (IrcConnectInfo info  : settings.getIrcConnectInfos())
             {
                 if (info.getHost() == null || info.getHost().isEmpty())
@@ -177,7 +170,7 @@ public class Yuri
             if (settings.getProxyHost() != null && !settings.getProxyHost().isEmpty())
             {
                 //Sets JDA's proxy settings
-                jdaBuilder.setProxy(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort()));
+                jdaBuilder.setProxy(new HttpHost(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort())));
 
                 //Sets the JVM level proxy settings.
                 System.setProperty("http.proxyHost", settings.getProxyHost());
@@ -189,7 +182,7 @@ public class Yuri
 
             //Login to Discord now that we are all setup.
             api = jdaBuilder.buildBlocking();
-            Permissions.getPermissions().setBotAsOp(api.getSelfInfo());
+            Permissions.getPermissions().setBotAsOp(api.getSelfUser());
 
             api.addEventListener(help.registerCommand(new TodoCommand(api)));
             api.addEventListener(help.registerCommand(new KanzeTodoCommand(api)));
@@ -217,6 +210,11 @@ public class Yuri
         catch (InterruptedException e)
         {
             System.out.println("Our login thread was interrupted!");
+            System.exit(UNABLE_TO_CONNECT_TO_DISCORD);
+        }
+        catch (RateLimitedException e)
+        {
+            System.out.println("Encountered ratelimit while attempting to login!");
             System.exit(UNABLE_TO_CONNECT_TO_DISCORD);
         }
     }

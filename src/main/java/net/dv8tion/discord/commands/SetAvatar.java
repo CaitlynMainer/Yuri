@@ -18,14 +18,13 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
+import net.dv8tion.jda.core.events.message.*;
 import net.dv8tion.discord.Yuri;
-import net.dv8tion.jda.MessageBuilder;
-import net.dv8tion.jda.events.message.GenericMessageEvent;
-import net.dv8tion.jda.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
-import net.dv8tion.jda.events.message.priv.GenericPrivateMessageEvent;
-import net.dv8tion.jda.managers.AccountManager;
-import net.dv8tion.jda.utils.AvatarUtil;
+import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.entities.Icon;
+import net.dv8tion.jda.core.entities.SelfUser;
+import net.dv8tion.jda.core.managers.AccountManager;
+import net.dv8tion.jda.core.managers.AccountManagerUpdatable;
 
 import java.io.IOException;
 import java.net.URL;
@@ -33,10 +32,23 @@ import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeMap;
 
 public class SetAvatar extends Command
 {
+	private TreeMap<String, Command> commands;
 
+    public SetAvatar()
+    {
+        commands = new TreeMap<>();
+    }
+
+    public Command registerCommand(Command command)
+    {
+        commands.put(command.getAliases().get(0), command);
+        return command;
+    }
+	
     @Override
     public void onCommand(MessageReceivedEvent e, String[] args)
     {
@@ -45,7 +57,7 @@ public class SetAvatar extends Command
             sendMessage(e, Permissions.OP_REQUIRED_MESSAGE);
             return;
         }
-        AccountManager accountManager = Yuri.getAPI().getAccountManager();
+        AccountManager accountManager = Yuri.getAPI().getSelfUser().getManager();
 
         try {
 
@@ -55,42 +67,24 @@ public class SetAvatar extends Command
 
             //BufferedReader r  = new BufferedReader(new InputStreamReader(connection.getInputStream(), Charset.forName("UTF-8")));
 
-            accountManager.setAvatar(AvatarUtil.getAvatar(connection.getInputStream()));
-            accountManager.update();
+            Icon avatar = Icon.from(connection.getInputStream());
+			accountManager.setAvatar(avatar).queue();
             sendMessage(e, new MessageBuilder()
-                .appendString("New avatar set!")
+                .append("New avatar set!")
                 .build());
-        } catch (IOException e1) {
+        } catch (Exception e1) {
             sendMessage(e, new MessageBuilder()
-                .appendString("Error: ")
-                    .appendString(e1.getCause().toString())
+                .append("Error: ")
+                    .append(e1.getCause().toString())
                 .build());
             e1.printStackTrace();
         }
     }
 
     @Override
-    public void onGenericMessage(GenericMessageEvent e)
-    {
-        //Don't care about Delete and Embed events. (both have null messages).
-        if (e.getMessage() == null)
-            return;
-
-        if (e instanceof GenericGuildMessageEvent)
-        {
-            GenericGuildMessageEvent event = (GenericGuildMessageEvent) e;
-            if (event.getGuild().getId().equals("107563502712954880"))  //Gaming Bunch Guild Id
-                System.out.println((event.getMessage().isEdited() ? "# " : "") + "[#" + event.getChannel().getName() + "] <" + event.getAuthor().getUsername() + "> " + event.getMessage().getContent());
-        }
-
-        if (e instanceof GenericPrivateMessageEvent)
-            System.out.println((e.getMessage().isEdited() ? "# " : "") + "[Private Message] <" + e.getAuthor().getUsername() + "> " + e.getMessage().getContent());
-    }
-
-    @Override
     public List<String> getAliases()
     {
-        return Arrays.asList("!setavatar", "!newavatar");
+        return Arrays.asList("!setavatar", "!newavatar", "@setavatar");
     }
 
     @Override

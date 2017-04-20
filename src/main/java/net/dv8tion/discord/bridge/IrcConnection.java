@@ -1,12 +1,12 @@
 /**
- * Copyright 2015-2016 Austin Keener
- * <p>
+ *     Copyright 2015-2016 Austin Keener
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,78 +15,103 @@
  */
 package net.dv8tion.discord.bridge;
 
+import com.google.common.base.Strings;
+
 import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
-import net.dv8tion.discord.bridge.endpoint.messages.DiscordEndPointMessage;
-import net.dv8tion.discord.bridge.endpoint.messages.IrcActionEndPointMessage;
-import net.dv8tion.discord.bridge.endpoint.messages.IrcEndPointMessage;
-import net.dv8tion.discord.bridge.endpoint.types.IrcEndPoint;
-import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.PasteUtils;
 import net.dv8tion.discord.util.makeTiny;
-import net.dv8tion.jda.entities.Guild;
-import net.dv8tion.jda.entities.Message;
-import net.dv8tion.jda.entities.User;
-import net.dv8tion.jda.events.Event;
-import net.dv8tion.jda.events.ReadyEvent;
-import net.dv8tion.jda.events.guild.member.GuildMemberNickChangeEvent;
-import net.dv8tion.jda.events.message.guild.GenericGuildMessageEvent;
-import net.dv8tion.jda.events.message.guild.GuildMessageDeleteEvent;
-import net.dv8tion.jda.events.message.priv.PrivateMessageReceivedEvent;
-import net.dv8tion.jda.hooks.EventListener;
-import net.dv8tion.jda.managers.ChannelManager;
+import net.dv8tion.jda.core.entities.Guild;
+import net.dv8tion.jda.core.entities.Member;
+import net.dv8tion.jda.core.entities.Message;
+import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.events.Event;
+import net.dv8tion.jda.core.events.ReadyEvent;
+import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
+import net.dv8tion.jda.core.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.core.events.message.guild.GenericGuildMessageEvent;
+import net.dv8tion.jda.core.events.message.guild.GuildMessageDeleteEvent;
+import net.dv8tion.jda.core.events.message.guild.GuildMessageUpdateEvent;
+import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
+import net.dv8tion.jda.core.hooks.EventListener;
+import net.dv8tion.jda.core.managers.ChannelManager;
 import org.pircbotx.Channel;
 import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.hooks.ListenerAdapter;
-import org.pircbotx.hooks.events.*;
+import org.pircbotx.hooks.events.ActionEvent;
+import org.pircbotx.hooks.events.ConnectEvent;
+import org.pircbotx.hooks.events.JoinEvent;
+import org.pircbotx.hooks.events.KickEvent;
+import org.pircbotx.hooks.events.MessageEvent;
+import org.pircbotx.hooks.events.NickChangeEvent;
+import org.pircbotx.hooks.events.PartEvent;
+import org.pircbotx.hooks.events.PrivateMessageEvent;
+import org.pircbotx.hooks.events.QuitEvent;
+import org.pircbotx.hooks.events.TopicEvent;
+import org.pircbotx.hooks.types.GenericMessageEvent;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.concurrent.TimeUnit;
-import java.util.HashMap;
 
-public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener {
+public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
+{
     public static final int MESSAGE_DELAY_AMOUNT = 250;
 
+    private final IrcConnectInfo info;
     private String identifier;
     private Thread botThread;
     private PircBotX bot;
-    private HashMap<String, User> userToNick = new HashMap<>();
-    private HashMap<String, EndPoint> userToEndPoint = new HashMap<>();
-
-
-    public IrcConnection(IrcConnectInfo info) {
+    private HashMap<String, Member> userToNick = new HashMap<>();
+    private HashMap<Member, Guild>	memberToGuild = new HashMap<>();
+    private HashMap<Guild, String> 	pinnedMessages = new HashMap<>();
+    
+    public IrcConnection(IrcConnectInfo info)
+    {
+        this.info = info;
         identifier = info.getIdentifier();
         Builder<PircBotX> builder = info.getIrcConfigBuilder();
         builder.addListener(this);
         builder.setMessageDelay(MESSAGE_DELAY_AMOUNT);
         builder.setAutoReconnect(true);
-        builder.setLogin(builder.getName());
+        builder.setAutoNickChange(true);
         bot = new PircBotX(builder.buildConfiguration());
         this.open();
-
     }
 
-    public void open() {
+    public void open()
+    {
         if (botThread != null)
             throw new IllegalStateException("We tried to create another bot thread before killing the current one!");
 
-        botThread = new Thread() {
-            public void run() {
-                try {
+        botThread = new Thread()
+        {
+            public void run()
+            {
+                try
+                {
                     bot.startBot();
-                } catch (IOException | IrcException e) {
+                }
+                catch (IOException | IrcException e)
+                {
                     System.err.println("Yeah.. idk. Sorry");
                     e.printStackTrace();
                 }
@@ -95,21 +120,40 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         botThread.start();
     }
 
-    public void close(String reason) {
+    public void close(String reason)
+    {
         //TODO: Cleanup the EndPoints of this connection in EndPointManager.
+        bot.stopBotReconnect();
         bot.sendIRC().quitServer(reason);
     }
 
-    public String getIdentifier() {
+    public String getIdentifier()
+    {
         return identifier;
     }
 
-    public PircBotX getIrcBot() {
+    public PircBotX getIrcBot()
+    {
         return bot;
     }
+
     // -----  Events -----
 
     // -- IRC --
+
+    @Override
+    public void onConnect(ConnectEvent<PircBotX> event)
+    {
+        //If, after connection, we don't have the defined nick AND we have auth info, attempt to ghost
+        // account using our desired nick and switch to our desired nick.
+        if (!event.getBot().getUserBot().getNick().equals(info.getNick())
+                && !Strings.isNullOrEmpty(info.getIdentPass()))
+        {
+            event.getBot().sendRaw().rawLine("NICKSERV GHOST " + info.getNick() + " " + info.getIdentPass());
+            event.getBot().sendIRC().changeNick(info.getNick());
+        }
+    }
+
     @Override
     public void onTopic(TopicEvent<PircBotX> event) {
         //If this returns null, then this EndPoint isn't part of a bridge.
@@ -121,8 +165,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 ResultSet results = getChans.executeQuery();
                 if (results.next()) {
                     ChannelManager chanMan = new ChannelManager(Yuri.getAPI().getTextChannelById(endPoint.toEndPointInfo().getChannelId()));
-                    chanMan.setTopic(event.getTopic());
-                    chanMan.update();
+                    chanMan.setTopic(event.getTopic()).queue();
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -132,92 +175,76 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
     @Override
     public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
-        if (event.getMessage().startsWith("!users")) {
-            String users = "";
-            for(String currentKey : userToNick.keySet()) {
-                users += "User: " + userToNick.get(currentKey).getUsername().replace("\n", "").replace("\r", "") + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";
-            }
-            event.respond(PasteUtils.paste("Current Discord users:\r\n" + users, false));
-        } else {
-            String pmTo = event.getMessage().split(" ")[0].replace(":", "");
-            String pmMessage = event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> ");
-            if (userToNick.containsKey(pmTo)) {
-                User pmToUser = userToNick.get(pmTo);
-                pmToUser.getPrivateChannel().sendMessage(pmMessage);
-            }
-        }
+    	String pmTo = event.getMessage().split(" ")[0].replace(":", "");
+    	String pmMessage = event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> ");
+    	if (userToNick.containsKey(pmTo)) {
+    		Member pmToUser = userToNick.get(pmTo);
+    		pmToUser.getUser().getPrivateChannel().sendMessage(pmMessage).queue();
+    	}
     }
-
+    
+    public void parseMessage(EndPoint endPoint, GenericMessageEvent event, Boolean checkStatus) {
+    	if (endPoint != null) {
+    		String chanName;
+    		if (event instanceof MessageEvent) {
+    			chanName = ((MessageEvent) event).getChannel().getName();
+    		} else {
+    			chanName = ((ActionEvent) event).getChannel().getName();
+    		}
+    		EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
+    		Pattern pattern = Pattern.compile("@[^\\s]+\\b");
+    		Matcher matcher = pattern.matcher(message.getMessage().replace("@status", ""));
+    		while (matcher.find()) {
+    			Member checkUser = userToNick.get(matcher.group(0).replace("@", ""));
+    			if (userToNick.containsKey(matcher.group(0).replace("@", ""))) {
+    				if (checkStatus) {
+    					event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus());
+    				}
+    				message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<"));
+    			}
+    		}
+    		if(event instanceof ActionEvent) {
+    			message.setMessage("_" + message.getMessage() + "_");
+    		}
+    		endPoint.sendMessage(message);
+    	}
+    }
+    
     @Override
-    public void onMessage(MessageEvent<PircBotX> event) {
+    public void onMessage(MessageEvent<PircBotX> event)
+    {
+        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
         Boolean checkStatus = false;
         //Specific to the the Imaginescape IRC/Discord channel. Dumb minecraft server spits out an empty message that is really annoying.
         if (event.getUser().getNick().equals("IServer") && event.getMessage().equals("[Server]"))
             return;
 
-        if (event.getMessage().startsWith("@status")) {
+        if (event.getMessage().toLowerCase().startsWith("@status")) {
             checkStatus = true;
         }
 
+        if (event.getMessage().startsWith("!users")) {
+            String users = "";
+            for(String currentKey : userToNick.keySet()) {
+                users += "User: " + userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Guild: " + memberToGuild.get(userToNick.get(currentKey)).getName() + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";
+            }
+            event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> " + PasteUtils.paste("Current Discord users:\r\n" + users, false));
+        }
+        
+        //If this returns null, then this EndPoint isn't part of a bridge.
+        parseMessage(endPoint, event, checkStatus);
+    }
+    
+    @Override
+    public void onAction(ActionEvent<PircBotX> event)
+    {
+        //Specific to the the Imaginescape IRC/Discord channel. Dumb minecraft server spits out an empty message that is really annoying.
+        if (event.getUser().getNick().equals("IServer") && event.getMessage().equals("[Server]"))
+            return;
+
         //If this returns null, then this EndPoint isn't part of a bridge.
         EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
-        if (endPoint != null) {
-            EndPointMessage message = new IrcEndPointMessage(event);
-            Pattern pattern = Pattern.compile("@[^\\s]+\\b");
-            Matcher matcher = pattern.matcher(message.getMessage());
-            while (matcher.find()) {
-                for (User user : Yuri.getAPI().getUsers()) {
-                    User checkUser = userToNick.get(matcher.group(0).replace("@", ""));
-
-                    if (userToNick.containsKey(matcher.group(0).replace("@", "")) && user.equals(checkUser)) {
-                        if (checkStatus) {
-                            event.respond(user.getUsername() + " is currently " + user.getOnlineStatus());
-                        }
-                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
-                        endPoint.sendMessage(message);
-                        return;
-                    }
-                    if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@", ""))) {
-                        if (checkStatus) {
-                            event.respond(user.getUsername() + " is currently " + user.getOnlineStatus());
-                        }
-                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
-                    }
-                }
-            }
-            endPoint.sendMessage(message);
-        }
-    }
-
-    @Override
-    public void onAction(ActionEvent<PircBotX> event) throws Exception {
-        //If this returns null, then this EndPoint isn't part of a bridge.
-        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
-        if (endPoint != null) {
-            EndPointMessage message = new IrcActionEndPointMessage(event);
-            Pattern pattern = Pattern.compile("@[^\\s]+\\b");
-            Matcher matcher = pattern.matcher(message.getMessage());
-            while (matcher.find()) {
-                for (User user : Yuri.getAPI().getUsers()) {
-                    User checkUser = userToNick.get(matcher.group(0).replace("@", ""));
-
-                    if (userToNick.containsKey(matcher.group(0).replace("@", "")) && user.equals(checkUser)) {
-                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
-                        endPoint.sendMessage(message);
-                        return;
-                    }
-                    if (user.getUsername().equalsIgnoreCase(matcher.group(0).replace("@", ""))) {
-                        message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), user.getAsMention()).replace("@<", "<"));
-                    }
-                }
-            }
-            endPoint.sendMessage(message);
-        }
-    }
-
-    @Override
-    public void onConnect(ConnectEvent<PircBotX> event) {
-
+        parseMessage(endPoint, event, false);
     }
 
     @Override
@@ -284,9 +311,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
     @Override
     public void onKick(KickEvent<PircBotX> event) {
-        EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
         PreparedStatement getChans = Database.getInstance().getStatement("getChan");
         try {
+            EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
             getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
             ResultSet results = getChans.executeQuery();
             if (results.next()) {
@@ -301,10 +328,10 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     @Override
     public void onJoin(JoinEvent<PircBotX> event) {
         if (event.getBot().getUserBot().equals(event.getUser())) {
-            System.out.println("Joined: " + event.getChannel().getName());
-            EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
-        } else {
-            updateNickList(event.getChannel());
+        	EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        	EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+        	endPoint.sendMessage("Bridge Bot available");
+       } else {
             EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
             if (endPoint != null) {
                 PreparedStatement getChans = Database.getInstance().getStatement("getChan");
@@ -319,8 +346,11 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 }
             }
         }
+        updateNickList(event.getChannel());
     }
 
+    // -- Discord --
+ 
     private String removeUrl(String commentstr) {
         String urlPattern = "((https?|ftp|gopher|telnet|file|Unsure|http):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)";
         Pattern p = Pattern.compile(urlPattern, Pattern.CASE_INSENSITIVE);
@@ -340,51 +370,88 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             return in;
         }
     }
-
-    // -- Discord --
-
+    
     @Override
     public void onEvent(Event event) {
+    	Boolean abort = false;
+    	if (event instanceof MessageUpdateEvent) {
+            MessageUpdateEvent e = (MessageUpdateEvent) event;
+            if (pinnedMessages.containsValue(e.getMessage().getId())) {
+            	return;
+            }
+            ((MessageUpdateEvent) event).getChannel().getPinnedMessages().queue(new Consumer<List<Message>>() {
+            	@Override
+            	public void accept(List<Message> t) {
+            		ListIterator<Message> it = t.listIterator();
+            		while(it.hasNext()) {
+            			Message msg = it.next();
+            			pinnedMessages.put(((MessageUpdateEvent) event).getGuild(), msg.getId());
+            		}
+            	} 
+            }
+            );
+            if (!e.getMessage().isEdited()) {
+            	return;
+            }
+        }
+    	
+    	if (event instanceof GuildMessageUpdateEvent) {
+    		return;
+        }
+
         if (event instanceof PrivateMessageReceivedEvent) {
             PrivateMessageReceivedEvent e = (PrivateMessageReceivedEvent) event;
-            if (event.getJDA().getSelfInfo().getId().equals(e.getAuthor().getId()))
+            if (event.getJDA().getSelfUser().getId().equals(e.getAuthor().getId()))
                 return;
             String pmTo = e.getMessage().getContent().split(" ")[0].replace(":", "");
-            String pmMessage = e.getMessage().getContent().replace(pmTo + ": ", "<" + e.getAuthor().getUsername() + ">" + " ");
+            String pmMessage = e.getMessage().getContent().replace(pmTo + ": ", "<" + e.getAuthor().getName() + ">" + " ");
 
             bot.sendIRC().message(pmTo, pmMessage);
         }
 
         if (event instanceof ReadyEvent) {
             for (Guild currGuild : event.getJDA().getGuilds()) {
-                for (User currUser : currGuild.getUsers()) {
+                for (Member currMember : currGuild.getMembers()) {
                     String userNick;
-                    if (currGuild.getNicknameForUser(currUser) != null) {
-                        userNick = (currGuild.getNicknameForUser(currUser));
-                    } else {
-                        userNick = currUser.getUsername();
+                    userNick = currMember.getEffectiveName();
+                    userToNick.put(userNick, currMember);
+                    memberToGuild.put(currMember, currGuild);
+                }
+                for (TextChannel currChan : currGuild.getTextChannels()) {
+                	currChan.getPinnedMessages().queue(new Consumer<List<Message>>() {
+
+                    	@Override
+                    	public void accept(List<Message> t) {
+                    		ListIterator<Message> it = t.listIterator();
+                    		while(it.hasNext()) {
+                    			Message msg = it.next();
+                    			pinnedMessages.put(currGuild, msg.getId());
+                    		}
+                    	} 
                     }
-                    System.out.println("Adding " + userNick + ":" + currUser.getUsername() + " to the mapping!");
-                    userToNick.put(userNick, currUser);
+                    );
                 }
             }
         }
 
         if (event instanceof GuildMemberNickChangeEvent) {
             GuildMemberNickChangeEvent e = (GuildMemberNickChangeEvent) event;
-            Guild currGuild = e.getGuild();
-            User currUser = e.getUser();
+            Member currMember = e.getMember();
             String userNick;
-            if (currGuild.getNicknameForUser(currUser) != null) {
-                userNick = (currGuild.getNicknameForUser(currUser));
-            } else {
-                userNick = currUser.getUsername();
-            }
-            System.out.println("Adding " + userNick + " to the mapping!");
-            userToNick.put(userNick, currUser);
-
+            userNick = currMember.getEffectiveName();
+            userToNick.put(userNick, currMember);
+            memberToGuild.put(currMember, currMember.getGuild());
+        }
+        
+        if (event instanceof GuildMemberJoinEvent) {
+        	GuildMemberJoinEvent e = (GuildMemberJoinEvent) event;
+        	memberToGuild.put(e.getMember(), e.getGuild());
         }
 
+        if (event instanceof GuildMemberLeaveEvent) {
+        	GuildMemberLeaveEvent e = (GuildMemberLeaveEvent) event;
+        	memberToGuild.remove(e.getMember(), e.getGuild());
+        }
 
         //We only deal with TextChannel Message events
         if (!(event instanceof GenericGuildMessageEvent))
@@ -392,7 +459,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
         //Don't care about deleted messages or embeds.
         if (event instanceof GuildMessageDeleteEvent /*|| event instanceof GuildMessageEmbedEvent*/)
-            return;
+        	return;
 
         GenericGuildMessageEvent e = (GenericGuildMessageEvent) event;
 
@@ -400,41 +467,35 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         if (e.getAuthor().getId() == null){
             return;
         }
-        if (event.getJDA().getSelfInfo().getId().equals(e.getAuthor().getId()))
+        if (event.getJDA().getSelfUser().getId().equals(e.getAuthor().getId()))
             return;
 
         //If this returns null, then this EndPoint isn't part of a bridge.
         EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromDiscordChannel(e.getChannel()));
-        if (endPoint != null) {
+        if (endPoint != null && !abort) {
             String userNick;
-            if (e.getAuthorNick() != null) {
-                userNick = e.getAuthorNick();
-            } else {
-                userNick = e.getAuthorName();
-            }
-            userToNick.put(userNick, e.getAuthor());
-            EndPointMessage message = new DiscordEndPointMessage(e);
+            userNick = e.getMember().getEffectiveName();
+            userToNick.put(userNick, e.getMember());
+            EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
             String parsedMessage = "";
             String nick;
             String tinyURL = "";
             if (!e.getMessage().getAttachments().isEmpty()) {
                 for (Message.Attachment attach : e.getMessage().getAttachments()) {
-                    if (message.getSenderNick() != null) {
-                        nick = message.getSenderNick();
-                    } else {
-                        nick = message.getSenderName();
-                    }
-                    nick = AntiPing.antiPing(nick);
+                    //nick = AntiPing.antiPing(userNick);
                     tinyURL = makeTiny.getTinyURL(attach.getUrl());
-                    String str = message.getMessage();
-                    String[] splited = str.split(" ");
-                    parsedMessage += "<" + nick + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
+                    parsedMessage += "<" + userNick + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
                 }
                 parsedMessage.replace(tinyURL, "");
                 endPoint.sendMessage(parsedMessage.toString());
             } else {
-                message = new DiscordEndPointMessage(e);
-                endPoint.sendMessage(message);
+            	if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
+            		message = EndPointMessage.createFromDiscordEvent(e);
+            		endPoint.sendAction(message);
+            	} else {
+            		message = EndPointMessage.createFromDiscordEvent(e);
+            		endPoint.sendMessage(message);
+            	}
             }
         }
     }
@@ -465,21 +526,12 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         }
         try {
             String channelName = channel.getName();
-            if (Yuri.channelNicks.containsKey(channelName)) {
-                for (String name : Yuri.channelNicks.get(channelName)) {
-                    //plugin.logDebug("O: " + name);
-                    if (!users.contains(name)) {
-                        //old code
-                    }
-                }
-                Yuri.channelNicks.remove(channelName);
-            }
             Yuri.channelNicks.put(channelName, users);
         } finally {
             Yuri.wl.unlock();
         }
     }
-
+    
     public Channel getChannel(String channelName) {
         Channel channel = null;
         for (Channel c : this.getIrcBot().getUserChannelDao().getAllChannels()) {

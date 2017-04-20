@@ -1,10 +1,14 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
+plugins {
+    id 'com.sedmelluq.jdaction' version '1.0.1'
+}
+
 apply plugin: 'java'
 
-def versionObj = new Version(major: 1, minor: 2, revision: 0)
+def versionObj = new Version(major: 1, minor: 3, revision: 1)
 group = "net.dv8tion"
-archivesBaseName = "Yuri"
+archivesBaseName = "Yui"
 version = "${versionObj.toString()}"
 
 sourceCompatibility = 1.8
@@ -22,6 +26,10 @@ sourceSets {
             ]
         }
     }
+}
+
+jdaction {
+    sourceSets = [sourceSets.main]
 }
 
 // copy the main sources and filter any '@buildVersion@' occurences. 
@@ -58,7 +66,7 @@ task sourcesJar(type: Jar) {
 task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Version': version
-        attributes 'Main-Class': "net.dv8tion.discord.Yuri"
+        attributes 'Main-Class': "net.dv8tion.discord.Yui"
     }
     baseName = project.name + '-withDependencies'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
@@ -73,13 +81,13 @@ repositories {
 }
 
 dependencies {
-    compile "net.dv8tion:JDA:2.2.1_375"
+    compile "net.dv8tion:JDA:3.0.BETA2_122"
+    compile 'com.sedmelluq:lavaplayer:1.1.42'
     compile "net.lingala.zip4j:zip4j:1.3.2"
     compile "com.google.code.gson:gson:2.4"
     compile "org.xerial:sqlite-jdbc:3.8.11.2"
     compile "org.pircbotx:pircbotx:2.0.1"
     compile "commons-io:commons-io:2.4"
-    compile "com.kcthota:emoji4j:5.0"
 }
 
 class Version {
@@ -102,7 +110,7 @@ class Version {
     }
 
     String toString() {
-        "${getMajor()}.${getMinor()}.${getRevision()}"
+        "${getMajor()}.${getMinor()}.${getRevision()}_${getBuild()}"
     }
 }
 

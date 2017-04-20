@@ -23,8 +23,8 @@ import java.util.regex.Pattern;
 
 public class YuriInfo
 {
-    public static final String RECOMMENDED_BUILD_ROOT = "http://ci.pc-logix.com/job/Yuri/Promoted%20Build/artifact/build/libs/";
-    public static final String BETA_BUILD_ROOT = "http://ci.pc-logix.com/job/Yuri/lastCompletedBuild/artifact/build/libs/";
+    public static final String RECOMMENDED_BUILD_ROOT = "http://home.dv8tion.net:8080/job/Yui/Promoted%20Build/artifact/build/libs/";
+    public static final String BETA_BUILD_ROOT = "http://home.dv8tion.net:8080/job/Yui/lastCompletedBuild/artifact/build/libs/";
     public static final Version VERSION = new Version(
             "@versionMajor@",
             "@versionMinor@",
