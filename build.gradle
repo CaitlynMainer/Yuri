@@ -8,7 +8,7 @@ apply plugin: 'java'
 
 def versionObj = new Version(major: 1, minor: 3, revision: 1)
 group = "net.dv8tion"
-archivesBaseName = "Yui"
+archivesBaseName = "Yuri"
 version = "${versionObj.toString()}"
 
 sourceCompatibility = 1.8
