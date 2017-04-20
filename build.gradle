@@ -45,10 +45,10 @@ task processVersion (type: Copy) {
 }
 
 jar {
-    baseName = project.name
+    baseName = "Yuri"
     manifest {
         attributes 'Implementation-Version': version
-        attributes 'Main-Class': "net.dv8tion.discord.Yui"
+        attributes 'Main-Class': "net.dv8tion.discord.Yuri"
     }
 }
 
@@ -66,9 +66,9 @@ task sourcesJar(type: Jar) {
 task fatJar(type: Jar) {
     manifest {
         attributes 'Implementation-Version': version
-        attributes 'Main-Class': "net.dv8tion.discord.Yui"
+        attributes 'Main-Class': "net.dv8tion.discord.Yuri"
     }
-    baseName = project.name + '-withDependencies'
+    baseName = "Yuri" + '-withDependencies'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
