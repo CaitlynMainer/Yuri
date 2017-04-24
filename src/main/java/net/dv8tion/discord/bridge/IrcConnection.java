@@ -192,11 +192,12 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     			chanName = ((ActionEvent) event).getChannel().getName();
     		}
     		EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
-    		Pattern pattern = Pattern.compile("@[^\\s]+\\b");
+    		Pattern pattern = Pattern.compile("@[^\\s\"']+|@\"([^\"]*)\"|@'([^']*)'");
     		Matcher matcher = pattern.matcher(message.getMessage().replace("@status", ""));
     		while (matcher.find()) {
-    			Member checkUser = userToNick.get(matcher.group(0).replace("@", ""));
-    			if (userToNick.containsKey(matcher.group(0).replace("@", ""))) {
+    			Member checkUser = userToNick.get(matcher.group(0).replace("@", "").replace("\"", ""));
+    			System.out.println(matcher.group(0).replace("@", "") + " | " + matcher.group(0).replace("@", "").replace("\"", ""));
+    			if (userToNick.containsKey(matcher.group(0).replace("@", "").replace("\"", ""))) {
     				if (checkStatus) {
     					event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus());
     				}
