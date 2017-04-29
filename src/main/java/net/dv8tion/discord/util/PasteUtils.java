@@ -3,12 +3,7 @@ package net.dv8tion.discord.util;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -19,7 +14,17 @@ import java.net.URL;
  */
 public class PasteUtils {
 
+	public enum Formats {
+	    LENGTH,
+	    INVENTORY,
+	    NONE;
+	}
+	
     private static String pasteURL = "http://paste.pc-logix.com/";
+
+	  public synchronized static String paste(String urlParameters) {
+	      return paste(urlParameters, Formats.NONE);
+    }
 
     /**
      * A simple implementation of the Hastebin Client API, allowing data to be pasted online for
@@ -28,12 +33,12 @@ public class PasteUtils {
      * @param urlParameters The string to be sent in the body of the POST request
      * @return A formatted URL which links to the pasted file
      */
-    public synchronized static String paste(String urlParameters, Boolean format) {
-    	
-    	StringBuilder sb = new StringBuilder(urlParameters);
+    public synchronized static String paste(String urlParameters, Enum format) {
 
-    	int i = 0;
-        if (format) {
+        StringBuilder sb = new StringBuilder(urlParameters);
+
+        if (format.equals(Formats.LENGTH)) {
+            int i = 0;
             while ((i = sb.indexOf(" ", i + 100)) != -1) {
                 sb.replace(i, i + 1, "\n");
             }
@@ -50,7 +55,7 @@ public class PasteUtils {
 
             //Send request
             //DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-           
+
             connection.setRequestProperty("content-type", "application/json;  charset=utf-8");
             Writer writer = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream(), "UTF-8"));
             writer.write(sb.toString());
@@ -62,7 +67,7 @@ public class PasteUtils {
             return pasteURL.replace("http", "https") + new JSONObject(rd.readLine()).getString("key");
 
         } catch (IOException | JSONException e) {
-        	e.printStackTrace();
+            e.printStackTrace();
             return null;
         } finally {
             if (connection == null) return null;

@@ -43,6 +43,7 @@ import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.ChannelManager;
 import org.pircbotx.Channel;
+import org.pircbotx.Colors;
 import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
 import org.pircbotx.exception.IrcException;
@@ -201,7 +202,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     				if (checkStatus) {
     					event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus());
     				}
-    				message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<"));
+    				message.setMessage(Colors.removeColors(message.getMessage().replace(matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<")));
     			}
     		}
     		if(event instanceof ActionEvent) {
@@ -229,7 +230,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             for(String currentKey : userToNick.keySet()) {
                 users += "User: " + userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Guild: " + memberToGuild.get(userToNick.get(currentKey)).getName() + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";
             }
-            event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> " + PasteUtils.paste("Current Discord users:\r\n" + users, false));
+            event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> " + PasteUtils.paste("Current Discord users:\r\n" + users));
         }
         
         //If this returns null, then this EndPoint isn't part of a bridge.
@@ -490,11 +491,22 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                 parsedMessage.replace(tinyURL, "");
                 endPoint.sendMessage(parsedMessage.toString());
             } else {
+            	String messageString = message.getMessage();
+            	final String regex = ".*```.*?\\n((?:.|\\n)*?)\\n```";
+        		Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        		Matcher matcher = pattern.matcher(messageString);
+        		while (matcher.find()) {
+        		    for (int i = 1; i <= matcher.groupCount(); i++) {
+        		    	messageString = messageString.replace(matcher.group(i), PasteUtils.paste(matcher.group(i), PasteUtils.Formats.NONE)).replace("```", "");
+        		    }
+        		}
             	if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
             		message = EndPointMessage.createFromDiscordEvent(e);
+            		message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
             		endPoint.sendAction(message);
             	} else {
             		message = EndPointMessage.createFromDiscordEvent(e);
+            		message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
             		endPoint.sendMessage(message);
             	}
             }
