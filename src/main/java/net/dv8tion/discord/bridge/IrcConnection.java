@@ -398,7 +398,24 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
         }
     	
     	if (event instanceof GuildMessageUpdateEvent) {
-    		return;
+    		GuildMessageUpdateEvent e = (GuildMessageUpdateEvent) event;
+            if (pinnedMessages.containsValue(e.getMessage().getId())) {
+            	return;
+            }
+            ((GuildMessageUpdateEvent) event).getChannel().getPinnedMessages().queue(new Consumer<List<Message>>() {
+            	@Override
+            	public void accept(List<Message> t) {
+            		ListIterator<Message> it = t.listIterator();
+            		while(it.hasNext()) {
+            			Message msg = it.next();
+            			pinnedMessages.put(((GuildMessageUpdateEvent) event).getGuild(), msg.getId());
+            		}
+            	} 
+            }
+            );
+            if (!e.getMessage().isEdited()) {
+            	return;
+            }
         }
 
         if (event instanceof PrivateMessageReceivedEvent) {
