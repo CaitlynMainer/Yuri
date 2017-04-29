@@ -102,6 +102,14 @@ public class IrcEndPoint extends EndPoint
                 else
                     builder.append(username);
                 builder.append("> ");
+                
+           		if (segment.equals("```")) {
+           			continue;
+        		} else if (segment.startsWith("`") && segment.endsWith("`")) {
+        			segment = segment.replace("`", "");
+        		}
+           		
+           		System.out.println(segment.length());
                 builder.append(segment);
                 this.sendMessage(builder.toString());
             }
