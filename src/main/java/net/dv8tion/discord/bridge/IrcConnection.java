@@ -177,7 +177,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     @Override
     public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
     	String pmTo = event.getMessage().split(" ")[0].replace(":", "");
-    	String pmMessage = event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> ");
+    	String pmMessage = Colors.removeColors(event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> "));
     	if (userToNick.containsKey(pmTo)) {
     		Member pmToUser = userToNick.get(pmTo);
     		pmToUser.getUser().getPrivateChannel().sendMessage(pmMessage).queue();
@@ -195,6 +195,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     		EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
     		Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
     		Matcher matcher = pattern.matcher(message.getMessage().replace("@status", ""));
+    		message.setMessage(Colors.removeColors(message.getMessage()));
     		while (matcher.find()) {
     			Member checkUser = userToNick.get(matcher.group(0).replace("@", "").replace("\"", ""));
     			System.out.println(matcher.group(0).replace("@", "") + " | " + matcher.group(0).replace("@", "").replace("\"", ""));
@@ -202,7 +203,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     				if (checkStatus) {
     					event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus());
     				}
-    				message.setMessage(Colors.removeColors(message.getMessage().replace(matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<")));
+    				message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<"));
     			}
     		}
     		if(event instanceof ActionEvent) {
@@ -260,7 +261,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                     getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
                     ResultSet results = getChans.executeQuery();
                     if (results.next()) {
-                        endPoint.sendMessage(event.getUser().getNick() + " has quit IRC (" + event.getReason() + ")");
+                        endPoint.sendMessage(Colors.removeColors(event.getUser().getNick() + " has quit IRC (" + event.getReason() + ")"));
                     }
                 } catch (SQLException e) {
                     e.printStackTrace();
@@ -280,7 +281,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
             ResultSet results = getChans.executeQuery();
             if (results.next()) {
-                endPoint.sendMessage(event.getUser().getNick() + " has left " + event.getChannel().getName() + " on IRC (" + event.getReason() + ")");
+                endPoint.sendMessage(Colors.removeColors(event.getUser().getNick() + " has left " + event.getChannel().getName() + " on IRC (" + event.getReason() + ")"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -319,7 +320,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
             ResultSet results = getChans.executeQuery();
             if (results.next()) {
-                endPoint.sendMessage(event.getRecipient().getNick() + " has been kicked from " + event.getChannel().getName() + " on IRC by " + event.getUser().getNick() + " (" + event.getReason() + ")");
+                endPoint.sendMessage(Colors.removeColors(event.getRecipient().getNick() + " has been kicked from " + event.getChannel().getName() + " on IRC by " + event.getUser().getNick() + " (" + event.getReason() + ")"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
