@@ -443,6 +443,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                     userNick = currMember.getEffectiveName();
                     userToNick.put(userNick, currMember);
                     memberToGuild.put(currMember, currGuild);
+                    System.out.println("Adding user: " + userNick + " | " + currMember.getUser().getName() + " | " + currGuild.getName());
                 }
                 for (TextChannel currChan : currGuild.getTextChannels()) {
                 	currChan.getPinnedMessages().queue(new Consumer<List<Message>>() {
