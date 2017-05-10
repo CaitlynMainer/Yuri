@@ -446,18 +446,20 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
                     System.out.println("Adding user: " + userNick + " | " + currMember.getUser().getName() + " | " + currGuild.getName());
                 }
                 for (TextChannel currChan : currGuild.getTextChannels()) {
-                	currChan.getPinnedMessages().queue(new Consumer<List<Message>>() {
+                	if (currChan.canTalk()) {
+                    	currChan.getPinnedMessages().queue(new Consumer<List<Message>>() {
 
-                    	@Override
-                    	public void accept(List<Message> t) {
-                    		ListIterator<Message> it = t.listIterator();
-                    		while(it.hasNext()) {
-                    			Message msg = it.next();
-                    			pinnedMessages.put(currGuild, msg.getId());
-                    		}
-                    	} 
-                    }
-                    );
+                        	@Override
+                        	public void accept(List<Message> t) {
+                        		ListIterator<Message> it = t.listIterator();
+                        		while(it.hasNext()) {
+                        			Message msg = it.next();
+                        			pinnedMessages.put(currGuild, msg.getId());
+                        		}
+                        	} 
+                        }
+                        );
+                	}
                 }
             }
         }
