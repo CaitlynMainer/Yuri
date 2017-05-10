@@ -200,9 +200,12 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     			Member checkUser = userToNick.get(matcher.group(0).replace("@", "").replace("\"", ""));
     			System.out.println(matcher.group(0).replace("@", "") + " | " + matcher.group(0).replace("@", "").replace("\"", ""));
     			if (userToNick.containsKey(matcher.group(0).replace("@", "").replace("\"", ""))) {
+    				System.out.println("User was in userToNick");
     				if (checkStatus) {
+    					System.out.println("In checkStatus");
     					String playing = "";
     					if (checkUser.getOnlineStatus().name().equals("ONLINE") && (checkUser.getGame() != null)) {
+    						System.out.println("They are playing a game");
     						playing = " Playing: " + checkUser.getGame().getName();
     					}
     					event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
