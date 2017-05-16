@@ -184,7 +184,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     	}
     }
     
-    public void parseMessage(EndPoint endPoint, GenericMessageEvent event, Boolean checkStatus) {
+    @SuppressWarnings("rawtypes")
+	public void parseMessage(EndPoint endPoint, GenericMessageEvent event, Boolean checkStatus) {
     	if (endPoint != null) {
     		String chanName;
     		if (event instanceof MessageEvent) {
@@ -194,23 +195,19 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
     		}
     		EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
     		Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
-    		Matcher matcher = pattern.matcher(message.getMessage().replace("@status", ""));
+    		Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
     		message.setMessage(Colors.removeColors(message.getMessage()));
     		while (matcher.find()) {
-    			Member checkUser = userToNick.get(matcher.group(0).replace("@", "").replace("\"", ""));
-    			System.out.println(matcher.group(0).replace("@", "") + " | " + matcher.group(0).replace("@", "").replace("\"", ""));
-    			if (userToNick.containsKey(matcher.group(0).replace("@", "").replace("\"", ""))) {
-    				System.out.println("User was in userToNick");
+    			Member checkUser = userToNick.get(matcher.group(0).toLowerCase().replace("@", "").replace("\"", ""));
+    			if (userToNick.containsKey(matcher.group(0).toLowerCase().replace("@", "").replace("\"", ""))) {
     				if (checkStatus) {
-    					System.out.println("In checkStatus");
     					String playing = "";
     					if (checkUser.getOnlineStatus().name().equals("ONLINE") && (checkUser.getGame() != null)) {
-    						System.out.println("They are playing a game");
     						playing = " Playing: " + checkUser.getGame().getName();
     					}
     					event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
     				}
-    				message.setMessage(message.getMessage().replace(matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<"));
+    				message.setMessage(message.getMessage().replaceAll("(?i)"+matcher.group(0).replace("@", ""), checkUser.getAsMention()).replace("@<", "<"));
     			}
     		}
     		if(event instanceof ActionEvent) {
@@ -440,7 +437,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             for (Guild currGuild : event.getJDA().getGuilds()) {
                 for (Member currMember : currGuild.getMembers()) {
                     String userNick;
-                    userNick = currMember.getEffectiveName();
+                    userNick = currMember.getEffectiveName().toLowerCase();
                     userToNick.put(userNick, currMember);
                     memberToGuild.put(currMember, currGuild);
                     System.out.println("Adding user: " + userNick + " | " + currMember.getUser().getName() + " | " + currGuild.getName());
@@ -470,18 +467,20 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
             GuildMemberNickChangeEvent e = (GuildMemberNickChangeEvent) event;
             Member currMember = e.getMember();
             String userNick;
-            userNick = currMember.getEffectiveName();
+            userNick = currMember.getEffectiveName().toLowerCase();
             userToNick.put(userNick, currMember);
             memberToGuild.put(currMember, currMember.getGuild());
         }
         
         if (event instanceof GuildMemberJoinEvent) {
         	GuildMemberJoinEvent e = (GuildMemberJoinEvent) event;
+        	userToNick.put(e.getMember().getEffectiveName().toLowerCase(), e.getMember());
         	memberToGuild.put(e.getMember(), e.getGuild());
         }
 
         if (event instanceof GuildMemberLeaveEvent) {
         	GuildMemberLeaveEvent e = (GuildMemberLeaveEvent) event;
+        	userToNick.remove(e.getMember().getEffectiveName().toLowerCase(), e.getMember());
         	memberToGuild.remove(e.getMember(), e.getGuild());
         }
 
