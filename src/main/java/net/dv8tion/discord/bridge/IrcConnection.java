@@ -41,6 +41,7 @@ import net.dv8tion.jda.core.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageDeleteEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
+import net.dv8tion.jda.core.events.user.UserNameUpdateEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.ChannelManager;
 import org.pircbotx.Channel;
@@ -91,6 +92,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	private HashMap<Member, Guild>	memberToGuild = new HashMap<>();
 	private HashMap<Guild, String> 	pinnedMessages = new HashMap<>();
 	private HashMap<Message, Long> messagesToDelete = new HashMap<>();
+	private HashMap<Guild, String> joinedGuilds = new HashMap<>();
 	private ScheduledFuture<?> executor;
 	public IrcConnection(IrcConnectInfo info)
 	{
@@ -465,6 +467,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
 		if (event instanceof ReadyEvent) {
 			for (Guild currGuild : event.getJDA().getGuilds()) {
+				joinedGuilds.put(currGuild, currGuild.getName());
 				for (Member currMember : currGuild.getMembers()) {
 					String userNick;
 					userNick = currMember.getEffectiveName().toLowerCase();
@@ -486,13 +489,23 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 									pinnedMessages.put(currGuild, msg.getId());
 								}
 							} 
-						}
-								);
+						} );
 					}
 				}
 			}
 		}
 
+		if (event instanceof UserNameUpdateEvent) {
+			UserNameUpdateEvent e = (UserNameUpdateEvent) event;
+			userToNick.remove(e.getOldName());
+			for (Guild currGuild : event.getJDA().getGuilds()) {
+				Member currMember = currGuild.getMemberById(e.getUser().getId());
+				String userNick = currMember.getEffectiveName().toLowerCase();
+				userToNick.put(userNick, currMember);
+				memberToGuild.put(currMember, currGuild);
+			}
+		}
+		
 		if (event instanceof GuildMemberNickChangeEvent) {
 			GuildMemberNickChangeEvent e = (GuildMemberNickChangeEvent) event;
 			Member currMember = e.getMember();
