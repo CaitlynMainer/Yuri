@@ -212,6 +212,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		String pmMessage = Colors.removeColors(event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> "));
 		if (userToNick.containsKey(pmTo)) {
 			Member pmToUser = userToNick.get(pmTo);
+			pmToUser.getUser().openPrivateChannel();
 			pmToUser.getUser().getPrivateChannel().sendMessage(pmMessage).queue();
 		}
 	}
