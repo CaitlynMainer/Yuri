@@ -577,7 +577,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				Matcher matcher = pattern.matcher(messageString);
 				while (matcher.find()) {
 					for (int i = 1; i <= matcher.groupCount(); i++) {
-						messageString = messageString.replace(matcher.group(i), PasteUtils.paste(matcher.group(i), PasteUtils.Formats.NONE));
+						if (matcher.group(i).length() > 0)
+							messageString = messageString.replace(matcher.group(i), PasteUtils.paste(matcher.group(i), PasteUtils.Formats.NONE)).replaceAll("`", "");
 					}
 				}
 				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
