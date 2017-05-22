@@ -572,14 +572,12 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				endPoint.sendMessage(parsedMessage.toString());
 			} else {
 				String messageString = message.getMessage();
-				final String regex = ".*?``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
+				final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
 				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(messageString);
 				while (matcher.find()) {
-					for (int i = 1; i <= matcher.groupCount(); i++) {
-						if (matcher.group(i).length() > 0)
-							messageString = messageString.replace(matcher.group(i), PasteUtils.paste(matcher.group(i), PasteUtils.Formats.NONE)).replaceAll("`", "");
-					}
+					if (matcher.group(1).length() > 0)
+						messageString = messageString.replace(matcher.group(0), PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
 				}
 				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
 					message = EndPointMessage.createFromDiscordEvent(e);
