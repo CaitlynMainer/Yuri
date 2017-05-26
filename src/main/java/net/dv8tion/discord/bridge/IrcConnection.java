@@ -545,7 +545,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		String msgContents = e.getMessage().getRawContent();
 		if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") || 
 				msgContents.contains(" ha"+ "\u200B" +"s left the channel on IRC ") || msgContents.contains(" is n"+ "\u200B" +"ow known as ") ||
-				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ")) {
+				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ") ||
+				msgContents.contains("Bridge Bot available")) {
 			messagesToDelete.put(e.getMessage(), System.currentTimeMillis() + 10000);
 		}
 
