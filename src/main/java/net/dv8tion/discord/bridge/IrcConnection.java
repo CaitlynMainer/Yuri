@@ -367,11 +367,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
 	@Override
 	public void onJoin(JoinEvent<PircBotX> event) {
-		if (event.getBot().getUserBot().equals(event.getUser())) {
-			EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
-			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
-			endPoint.sendMessage("Bridge Bot available");
-		} else {
+		if (!event.getBot().getUserBot().equals(event.getUser())) {
 			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 			if (endPoint != null) {
 				PreparedStatement getChans = Database.getInstance().getStatement("getChan");
@@ -547,7 +543,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				msgContents.contains(" ha"+ "\u200B" +"s left the channel on IRC ") || msgContents.contains(" is n"+ "\u200B" +"ow known as ") ||
 				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ") ||
 				msgContents.contains("Bridge Bot available")) {
-			messagesToDelete.put(e.getMessage(), System.currentTimeMillis() + 10000);
+			messagesToDelete.put(e.getMessage(), System.currentTimeMillis() + 30000);
 		}
 
 		if (event.getJDA().getSelfUser().getId().equals(e.getAuthor().getId()))
