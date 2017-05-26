@@ -367,7 +367,10 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
 	@Override
 	public void onJoin(JoinEvent<PircBotX> event) {
-		if (!event.getBot().getUserBot().equals(event.getUser())) {
+		if (event.getBot().getUserBot().equals(event.getUser())) {
+			EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+		} else {
 			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 			if (endPoint != null) {
 				PreparedStatement getChans = Database.getInstance().getStatement("getChan");
