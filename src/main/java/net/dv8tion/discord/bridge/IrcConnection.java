@@ -564,7 +564,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			String tinyURL = "";
 			if (!e.getMessage().getAttachments().isEmpty()) {
 				for (Message.Attachment attach : e.getMessage().getAttachments()) {
-					//nick = AntiPing.antiPing(userNick);
 					tinyURL = makeTiny.getTinyURL(attach.getUrl());
 					parsedMessage += "<" + userNick + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
 				}
@@ -576,7 +575,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(messageString);
 				while (matcher.find()) {
-					if (matcher.group(1).length() > 0)
+					if (matcher.group(1).length() > 25 || matcher.group(1).contains("\n"))
 						messageString = messageString.replace(matcher.group(0), PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
 				}
 				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
