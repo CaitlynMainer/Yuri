@@ -146,7 +146,8 @@ public class Yuri
             jdaBuilder.addListener(help.registerCommand(new SetAvatar()));
             jdaBuilder.addListener(help.registerCommand(new SetGame()));
             jdaBuilder.addListener(help.registerCommand(new RelayMoreInfo()));
-
+            jdaBuilder.addListener(help.registerCommand(new IgnoreUserCommand()));
+            
             //Audio stuff
             jdaBuilder.addListener(new PlayerControl());
 

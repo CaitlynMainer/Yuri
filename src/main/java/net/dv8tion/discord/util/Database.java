@@ -75,11 +75,22 @@ public class Database
                     "ChannelID VARCHAR(52) NOT NULL" +
                     ")");
             
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " +
+                    "IgnoredUsers(" +
+                    "nickname VARCHAR(52) NOT NULL" +
+                    ")");
+            
             //Relay more IRC events
             preparedStatements.put("addChan", conn.prepareStatement("REPLACE INTO EnabledChans (ChannelID) VALUES (?)"));
             preparedStatements.put("getChan", conn.prepareStatement("SELECT ChannelID FROM EnabledChans WHERE ChannelID = ?"));
             preparedStatements.put("delChan", conn.prepareStatement("DELETE FROM EnabledChans WHERE ChannelID = ?"));
  
+            //Ignore IRC Users
+            preparedStatements.put("addIgnore", conn.prepareStatement("REPLACE INTO IgnoredUsers (nickname) VALUES (?)"));
+            preparedStatements.put("delIgnore", conn.prepareStatement("DELETE FROM IgnoredUsers WHERE nickname = ?"));
+            preparedStatements.put("getIgnore", conn.prepareStatement("SELECT nickname FROM IgnoredUsers WHERE nickname = ?"));
+
+            
             //Permissions
             preparedStatements.put(Permissions.ADD_OP, conn.prepareStatement("REPLACE INTO Ops (id) VALUES (?)"));
             preparedStatements.put(Permissions.GET_OPS, conn.prepareStatement("SELECT id FROM Ops"));

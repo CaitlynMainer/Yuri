@@ -253,6 +253,16 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	@Override
 	public void onMessage(MessageEvent<PircBotX> event)
 	{
+		PreparedStatement getIgnore = Database.getInstance().getStatement("getIgnore");
+		try {
+			getIgnore.setString(1, event.getUser().getNick());
+			ResultSet results = getIgnore.executeQuery();
+			if (results.next()) {
+				return;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 		Boolean checkStatus = false;
 		//Specific to the the Imaginescape IRC/Discord channel. Dumb minecraft server spits out an empty message that is really annoying.
@@ -278,6 +288,16 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	@Override
 	public void onAction(ActionEvent<PircBotX> event)
 	{
+		PreparedStatement getIgnore = Database.getInstance().getStatement("getIgnore");
+		try {
+			getIgnore.setString(1, event.getUser().getNick());
+			ResultSet results = getIgnore.executeQuery();
+			if (results.next()) {
+				return;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 		//Specific to the the Imaginescape IRC/Discord channel. Dumb minecraft server spits out an empty message that is really annoying.
 		if (event.getUser().getNick().equals("IServer") && event.getMessage().equals("[Server]"))
 			return;
