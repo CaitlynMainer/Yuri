@@ -88,7 +88,7 @@ public class Database
             //Ignore IRC Users
             preparedStatements.put("addIgnore", conn.prepareStatement("REPLACE INTO IgnoredUsers (nickname) VALUES (?)"));
             preparedStatements.put("delIgnore", conn.prepareStatement("DELETE FROM IgnoredUsers WHERE nickname = ?"));
-            preparedStatements.put("getIgnore", conn.prepareStatement("SELECT nickname FROM IgnoredUsers WHERE nickname = ?"));
+            preparedStatements.put("getIgnores", conn.prepareStatement("SELECT nickname FROM IgnoredUsers"));
 
             
             //Permissions

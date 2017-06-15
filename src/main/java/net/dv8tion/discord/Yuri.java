@@ -41,6 +41,8 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -66,6 +68,7 @@ public class Yuri
     public static ReadWriteLock rwl;
     public static Lock wl;
     public static CaseInsensitiveMap<Collection<String>> channelNicks;
+    public static Map<String, String> ignoredUsers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
     
     public static void main(String[] args) throws InterruptedException, UnsupportedEncodingException
     {
@@ -115,6 +118,7 @@ public class Yuri
         try
         {
         	channelNicks = new CaseInsensitiveMap<>();
+        	ignoredUsers = new CaseInsensitiveMap<>();
             Settings settings = SettingsManager.getInstance().getSettings();
 
             JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT).setToken(settings.getBotToken());

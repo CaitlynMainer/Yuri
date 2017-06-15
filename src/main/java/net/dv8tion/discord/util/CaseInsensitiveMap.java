@@ -471,5 +471,4 @@ public class CaseInsensitiveMap<V> extends AbstractMap<String, V> {
     public Collection<V> values() {
         return this.map.values();
     }
-
 }
