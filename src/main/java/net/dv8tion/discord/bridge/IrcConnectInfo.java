@@ -136,6 +136,7 @@ public class IrcConnectInfo
         builder.setAutoNickChange(true);
         for (String channel : autojoinChannels)
         {
+        	System.out.println("Adding channel + \"" + channel + "\" to autoJoin");
             builder.addAutoJoinChannel(channel);
         }
         return builder;
