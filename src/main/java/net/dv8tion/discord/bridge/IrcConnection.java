@@ -22,14 +22,17 @@ import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
+import net.dv8tion.discord.commands.Command;
 import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.PasteUtils;
 import net.dv8tion.discord.util.makeTiny;
+import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
+import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.ReadyEvent;
@@ -40,6 +43,7 @@ import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
 import net.dv8tion.jda.core.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.core.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageDeleteEvent;
+import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.core.events.user.UserNameUpdateEvent;
@@ -141,7 +145,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 						while (it.hasNext()) {
 							Map.Entry pair = (Map.Entry)it.next();
 							if ((Long) pair.getValue() <= System.currentTimeMillis()) {
-								((Message) pair.getKey()).deleteMessage().queue();
+								((Message) pair.getKey()).delete().queue();
 								it.remove(); // avoids a ConcurrentModificationException
 							}
 						}
@@ -213,10 +217,19 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		String pmMessage = Colors.removeColors(event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> "));
 		if (userToNick.containsKey(pmTo)) {
 			Member pmToUser = userToNick.get(pmTo.toLowerCase());
-			pmToUser.getUser().openPrivateChannel().queue();
-			pmToUser.getUser().getPrivateChannel().sendMessage(pmMessage).queue();
+			//pmToUser.getUser().openPrivateChannel().queue();
+			//pmToUser.getUser().sendMessage(pmMessage).queue();
+			sendPrivate(pmToUser.getUser().openPrivateChannel().complete(), pmMessage);
 		}
 	}
+	
+    private void sendPrivate(PrivateChannel channel, String args)
+    {
+
+            channel.sendMessage(new MessageBuilder()
+                    .append(args)
+                    .build()).queue();
+    }
 
 	@SuppressWarnings("rawtypes")
 	public void parseMessage(EndPoint endPoint, GenericMessageEvent event, Boolean checkStatus) {
@@ -542,7 +555,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		if (event instanceof GuildMessageDeleteEvent /*|| event instanceof GuildMessageEmbedEvent*/)
 			return;
 
-		GenericGuildMessageEvent e = (GenericGuildMessageEvent) event;
+		GuildMessageReceivedEvent e = (GuildMessageReceivedEvent) event;
 
 		//Basically: If we are the ones that sent the message, don't send it to IRC.
 		if (e.getAuthor().getId() == null){

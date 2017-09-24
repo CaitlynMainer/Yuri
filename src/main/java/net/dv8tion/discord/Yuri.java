@@ -30,6 +30,8 @@ import net.dv8tion.jda.core.JDABuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
+import okhttp3.OkHttpClient;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 
@@ -37,6 +39,7 @@ import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +49,8 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.net.Proxy;
+import java.net.Proxy.Type;
 
 public class Yuri
 {
@@ -127,33 +132,33 @@ public class Yuri
             ircConnections = new ArrayList<IrcConnection>();
 
             HelpCommand help = new HelpCommand();
-            jdaBuilder.addListener(help.registerCommand(help));
+            jdaBuilder.addEventListener(help.registerCommand(help));
             if (settings.getGoogleApiKey() != null && !settings.getGoogleApiKey().isEmpty())
             {
                 GoogleSearch.setup(settings.getGoogleApiKey());
-                jdaBuilder.addListener(help.registerCommand(new SearchCommand()));
-                jdaBuilder.addListener(help.registerCommand(new NyaaCommand()));
-                jdaBuilder.addListener(help.registerCommand(new MyAnimeListCommand()));
-                jdaBuilder.addListener(help.registerCommand(new AnimeNewsNetworkCommand()));
+                jdaBuilder.addEventListener(help.registerCommand(new SearchCommand()));
+                jdaBuilder.addEventListener(help.registerCommand(new NyaaCommand()));
+                jdaBuilder.addEventListener(help.registerCommand(new MyAnimeListCommand()));
+                jdaBuilder.addEventListener(help.registerCommand(new AnimeNewsNetworkCommand()));
             }
             else
             {
                 System.out.println("No Google API Key provided, all search commands disabled");
             }
-            jdaBuilder.addListener(help.registerCommand(new ReloadCommand()));
-            jdaBuilder.addListener(help.registerCommand(new UpdateCommand()));
-            jdaBuilder.addListener(help.registerCommand(new PermissionsCommand()));
-            jdaBuilder.addListener(help.registerCommand(new EvalCommand()));
-            jdaBuilder.addListener(help.registerCommand(new RollCommand()));
-            jdaBuilder.addListener(help.registerCommand(new InfoCommand()));
-            jdaBuilder.addListener(help.registerCommand(new UptimeCommand()));
-            jdaBuilder.addListener(help.registerCommand(new SetAvatar()));
-            jdaBuilder.addListener(help.registerCommand(new SetGame()));
-            jdaBuilder.addListener(help.registerCommand(new RelayMoreInfo()));
-            jdaBuilder.addListener(help.registerCommand(new IgnoreUserCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new ReloadCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new UpdateCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new PermissionsCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new EvalCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new RollCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new InfoCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new UptimeCommand()));
+            jdaBuilder.addEventListener(help.registerCommand(new SetAvatar()));
+            jdaBuilder.addEventListener(help.registerCommand(new SetGame()));
+            jdaBuilder.addEventListener(help.registerCommand(new RelayMoreInfo()));
+            jdaBuilder.addEventListener(help.registerCommand(new IgnoreUserCommand()));
             
             //Audio stuff
-            jdaBuilder.addListener(new PlayerControl());
+            jdaBuilder.addEventListener(new PlayerControl());
 
             for (IrcConnectInfo info  : settings.getIrcConnectInfos())
             {
@@ -169,13 +174,14 @@ public class Yuri
                 }
                 IrcConnection irc = new IrcConnection(info);
                 ircConnections.add(irc);
-                jdaBuilder.addListener(irc);
+                jdaBuilder.addEventListener(irc);
             }
 
             if (settings.getProxyHost() != null && !settings.getProxyHost().isEmpty())
             {
                 //Sets JDA's proxy settings
-                jdaBuilder.setProxy(new HttpHost(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort())));
+                jdaBuilder.setHttpClientBuilder(new OkHttpClient.Builder().proxy(new Proxy(Type.HTTP, new InetSocketAddress(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort())))));
+                //jdaBuilder.setProxy(new HttpHost(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort())));
 
                 //Sets the JVM level proxy settings.
                 System.setProperty("http.proxyHost", settings.getProxyHost());
