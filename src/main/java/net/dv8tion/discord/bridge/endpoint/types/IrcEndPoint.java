@@ -20,6 +20,8 @@ import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
+import net.dv8tion.discord.util.PasteUtils;
+
 import org.pircbotx.Channel;
 
 public class IrcEndPoint extends EndPoint
@@ -85,25 +87,42 @@ public class IrcEndPoint extends EndPoint
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
         String[] lines = message.getMessage().split("\n");
-        for (String line : lines)
-        {
-            for (String segment : this.divideMessageForSending(line))
+        if (lines.length > 3) {
+            StringBuilder builder = new StringBuilder();
+            for (String line : lines)
             {
-                String username = message.getSenderName();
-                StringBuilder builder = new StringBuilder();
-                builder.append("<");
-                if (username.length() > 1)
+                for (String segment : this.divideMessageForSending(line))
                 {
-                    int midway = username.length() / 2;
-                    builder.append(username.substring(0, midway));
-                    builder.append(NAME_BREAK_CHAR);
-                    builder.append(username.substring(midway));
-                }
-                else
+                    String username = message.getSenderName();
+                    builder.append("<");
                     builder.append(username);
-                builder.append("> ");
-                builder.append(segment);
-                this.sendMessage(builder.toString());
+                    builder.append("> ");
+                    builder.append(segment);
+                    builder.append("\n");
+                }
+            }
+            this.sendMessage("Message contained 4 or more newlines and was pastebined " + PasteUtils.paste(builder.toString(), PasteUtils.Formats.NONE));
+        } else {
+            for (String line : lines)
+            {
+                for (String segment : this.divideMessageForSending(line))
+                {
+                    String username = message.getSenderName();
+                    StringBuilder builder = new StringBuilder();
+                    builder.append("<");
+                    if (username.length() > 1)
+                    {
+                        int midway = username.length() / 2;
+                        builder.append(username.substring(0, midway));
+                        builder.append(NAME_BREAK_CHAR);
+                        builder.append(username.substring(midway));
+                    }
+                    else
+                        builder.append(username);
+                    builder.append("> ");
+                    builder.append(segment);
+                    this.sendMessage(builder.toString());
+                }
             }
         }
     }

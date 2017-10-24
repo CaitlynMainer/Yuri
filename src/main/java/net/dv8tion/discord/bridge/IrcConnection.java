@@ -596,7 +596,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				Matcher matcher = pattern.matcher(messageString);
 				while (matcher.find()) {
 					if (matcher.group(1).length() > 25 || matcher.group(1).contains("\n"))
-						messageString = messageString.replace(matcher.group(0), PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
+						messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
 				}
 				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
 					message = EndPointMessage.createFromDiscordEvent(e);
