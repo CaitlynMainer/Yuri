@@ -88,12 +88,25 @@ public class IrcEndPoint extends EndPoint
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
         String[] lines = message.getMessage().split("\n");
         if (lines.length > 3) {
+        	String username = message.getSenderName();
             StringBuilder builder = new StringBuilder();
+            StringBuilder nickname = new StringBuilder();
+            nickname.append("<");
+            if (username.length() > 1)
+            {
+                int midway = username.length() / 2;
+                nickname.append(username.substring(0, midway));
+                nickname.append(NAME_BREAK_CHAR);
+                nickname.append(username.substring(midway));
+            }
+            else
+            	nickname.append(username);
+            nickname.append("> ");
+            
             for (String line : lines)
             {
                 for (String segment : this.divideMessageForSending(line))
                 {
-                    String username = message.getSenderName();
                     builder.append("<");
                     builder.append(username);
                     builder.append("> ");
@@ -101,7 +114,7 @@ public class IrcEndPoint extends EndPoint
                     builder.append("\n");
                 }
             }
-            this.sendMessage("Message contained 4 or more newlines and was pastebined " + PasteUtils.paste(builder.toString(), PasteUtils.Formats.NONE));
+            this.sendMessage(nickname + "Message contained 4 or more newlines and was pastebined " + PasteUtils.paste(builder.toString(), PasteUtils.Formats.NONE));
         } else {
             for (String line : lines)
             {
