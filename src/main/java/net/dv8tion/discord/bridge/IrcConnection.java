@@ -473,6 +473,40 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			if (!e.getMessage().isEdited()) {
 				return;
 			}
+			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromDiscordChannel(e.getChannel()));
+			String userNick;
+			userNick = e.getMember().getEffectiveName();
+			userToNick.put(userNick, e.getMember());
+			EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
+			String parsedMessage = "";
+			String nick;
+			String tinyURL = "";
+			if (!e.getMessage().getAttachments().isEmpty()) {
+				for (Message.Attachment attach : e.getMessage().getAttachments()) {
+					tinyURL = makeTiny.getTinyURL(attach.getUrl());
+					parsedMessage += "<" + AntiPing.antiPing(userNick) + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
+				}
+				parsedMessage.replace(tinyURL, "");
+				endPoint.sendMessage(parsedMessage.toString() + " [Edited]");
+			} else {
+				String messageString = message.getMessage();
+				final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
+				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+				Matcher matcher = pattern.matcher(messageString);
+				while (matcher.find()) {
+					if (matcher.group(1).length() > 25 || matcher.group(1).contains("\n"))
+						messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
+				}
+				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
+					message = EndPointMessage.createFromDiscordEvent(e);
+					message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", "") + " [Edited]");
+					endPoint.sendAction(message);
+				} else {
+					message = EndPointMessage.createFromDiscordEvent(e);
+					message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", "") + " [Edited]");
+					endPoint.sendMessage(message);
+				}
+			}
 		}
 
 		if (event instanceof PrivateMessageReceivedEvent) {
