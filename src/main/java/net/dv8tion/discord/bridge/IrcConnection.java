@@ -214,7 +214,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	@Override
 	public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
 		String pmTo = event.getMessage().split(" ")[0].replace(":", "");
-		String pmMessage = Colors.removeColors(event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> "));
+		String pmMessage = Colors.removeFormattingAndColors(event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> "));
 		if (userToNick.containsKey(pmTo)) {
 			Member pmToUser = userToNick.get(pmTo.toLowerCase());
 			//pmToUser.getUser().openPrivateChannel().queue();
@@ -243,7 +243,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
 			Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
-			message.setMessage(Colors.removeColors(message.getMessage()));
+			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
 			while (matcher.find()) {
 				Member checkUser = userToNick.get(matcher.group(0).toLowerCase().replace("@", "").replace("\"", ""));
 				if (userToNick.containsKey(matcher.group(0).toLowerCase().replace("@", "").replace("\"", ""))) {
@@ -318,7 +318,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 					getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
 					ResultSet results = getChans.executeQuery();
 					if (results.next()) {
-						endPoint.sendMessage(Colors.removeColors(event.getUser().getNick() + " ha"+ "\u200B" +"s quit IRC (" + event.getReason() + ")"));
+						endPoint.sendMessage(Colors.removeFormattingAndColors(event.getUser().getNick() + " ha"+ "\u200B" +"s quit IRC (" + event.getReason() + ")"));
 					}
 				} catch (SQLException e) {
 					e.printStackTrace();
@@ -338,7 +338,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
 			ResultSet results = getChans.executeQuery();
 			if (results.next()) {
-				endPoint.sendMessage(Colors.removeColors(event.getUser().getNick() + " ha"+ "\u200B" +"s left the channel on IRC (" + event.getReason() + ")"));
+				endPoint.sendMessage(Colors.removeFormattingAndColors(event.getUser().getNick() + " ha"+ "\u200B" +"s left the channel on IRC (" + event.getReason() + ")"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -377,7 +377,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
 			ResultSet results = getChans.executeQuery();
 			if (results.next()) {
-				endPoint.sendMessage(Colors.removeColors(event.getRecipient().getNick() + " ha"+ "\u200B" +"s been kicked from " + event.getChannel().getName() + " on IRC by " + event.getUser().getNick() + " (" + event.getReason() + ")"));
+				endPoint.sendMessage(Colors.removeFormattingAndColors(event.getRecipient().getNick() + " ha"+ "\u200B" +"s been kicked from " + event.getChannel().getName() + " on IRC by " + event.getUser().getNick() + " (" + event.getReason() + ")"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -595,8 +595,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		if (e.getAuthor().getId() == null){
 			return;
 		}
-		String msgContents = e.getMessage().getRawContent();
-		/*if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") || 
+		/*String msgContents = e.getMessage().getRawContent();
+		if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") || 
 				msgContents.contains(" ha"+ "\u200B" +"s left the channel on IRC ") || msgContents.contains(" is n"+ "\u200B" +"ow known as ") ||
 				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ") ||
 				msgContents.contains("Bridge Bot available")) {
