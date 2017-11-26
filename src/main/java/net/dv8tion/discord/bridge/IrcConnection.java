@@ -182,14 +182,21 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	@Override
 	public void onConnect(ConnectEvent<PircBotX> event)
 	{
+		ConnectEvent<PircBotX> e = event;
 		//If, after connection, we don't have the defined nick AND we have auth info, attempt to ghost
 		// account using our desired nick and switch to our desired nick.
-		if (!event.getBot().getUserBot().getNick().equals(info.getNick())
-				&& !Strings.isNullOrEmpty(info.getIdentPass()))
-		{
+		if (!event.getBot().getUserBot().getNick().equals(info.getNick()) && !Strings.isNullOrEmpty(info.getIdentPass())) {
 			event.getBot().sendRaw().rawLine("NICKSERV GHOST " + info.getNick() + " " + info.getIdentPass());
-			event.getBot().sendIRC().changeNick(info.getNick());
 		}
+		ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
+		executor = ses.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				if (!e.getBot().getUserBot().getNick().equals(info.getNick())) {
+					e.getBot().sendIRC().changeNick(info.getNick());
+				}
+			}
+		}, 0, 1, TimeUnit.SECONDS);
 	}
 
 	@Override
