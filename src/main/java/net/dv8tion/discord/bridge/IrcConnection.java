@@ -501,7 +501,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(messageString);
 				while (matcher.find()) {
-					if (matcher.group(1).length() > 25 || matcher.group(1).contains("\n"))
+					if (matcher.group(1).contains("\n"))
 						messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
 				}
 				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
@@ -636,7 +636,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 				Matcher matcher = pattern.matcher(messageString);
 				while (matcher.find()) {
-					if (matcher.group(1).length() > 25 || matcher.group(1).contains("\n"))
+					if (matcher.group(1).contains("\n"))
 						messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
 				}
 				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
