@@ -87,8 +87,13 @@ public class DiscordEndPoint extends EndPoint
 		if (!connected)
 			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
 		System.out.println("Getting a list of all webhooks for channel " + getChannel().getName() + " (This can block)");
-		List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
-		System.out.println("Got list of webhooks continuing");
+		try
+		{
+			List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
+			System.out.println("Got list of webhooks continuing");
+			if (webhook.size() == 0) {
+				throw new RuntimeException();
+			}
 			for (Webhook hook : webhook) {
 				System.out.println("This webhook is named " + hook.getName() + " We're looking for " + settings.getWebHookName());
 				if (hook.getName().equalsIgnoreCase(settings.getWebHookName())) {
@@ -109,8 +114,10 @@ public class DiscordEndPoint extends EndPoint
 					return;
 				}
 			}
+		} catch (Exception e1) {
 			System.out.println("Fallback no webhooks named " + settings.getWebHookName() + " were found.");
 			getChannel().sendMessage(message).queue();
+		}
 	}
 
 	@Override
