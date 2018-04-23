@@ -35,98 +35,101 @@ import net.dv8tion.jda.webhook.WebhookMessageBuilder;
 
 public class DiscordEndPoint extends EndPoint
 {
-    public static final int MAX_MESSAGE_LENGTH = 2000;
+	public static final int MAX_MESSAGE_LENGTH = 2000;
 
-    private String guildId;
-    private String channelId;
+	private String guildId;
+	private String channelId;
 
-    public DiscordEndPoint(EndPointInfo info)
-    {
-        super(EndPointType.DISCORD);
-        this.guildId = info.getConnectorId();
-        this.channelId = info.getChannelId();
-    }
+	public DiscordEndPoint(EndPointInfo info)
+	{
+		super(EndPointType.DISCORD);
+		this.guildId = info.getConnectorId();
+		this.channelId = info.getChannelId();
+	}
 
-    public String getGuildId()
-    {
-        return guildId;
-    }
+	public String getGuildId()
+	{
+		return guildId;
+	}
 
-    public Guild getGuild()
-    {
-        return Yuri.getAPI().getGuildById(guildId);
-    }
+	public Guild getGuild()
+	{
+		return Yuri.getAPI().getGuildById(guildId);
+	}
 
-    public String getChannelId()
-    {
-        return channelId;
-    }
+	public String getChannelId()
+	{
+		return channelId;
+	}
 
-    public TextChannel getChannel()
-    {
-        return Yuri.getAPI().getTextChannelById(channelId);
-    }
+	public TextChannel getChannel()
+	{
+		return Yuri.getAPI().getTextChannelById(channelId);
+	}
 
-    @Override
-    public EndPointInfo toEndPointInfo()
-    {
-        return new EndPointInfo( this.connectionType, this.guildId, this.channelId);
-    }
+	@Override
+	public EndPointInfo toEndPointInfo()
+	{
+		return new EndPointInfo( this.connectionType, this.guildId, this.channelId);
+	}
 
-    @Override
-    public int getMaxMessageLength()
-    {
-        return MAX_MESSAGE_LENGTH;
-    }
+	@Override
+	public int getMaxMessageLength()
+	{
+		return MAX_MESSAGE_LENGTH;
+	}
 
-    @Override
-    public void sendMessage(String message)
-    {
-        if (!connected)
-            throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
-        if (webhook.size() > 0) {
-            String nick = StringUtils.substringBetween(message, "<", ">");
-            WebhookClientBuilder builder = webhook.get(0).newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
-            WebhookClient client = builder.build();
-            WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
-            builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
-            //MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
-            //MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
-            builder1.setUsername(nick);
-            WebhookMessage message1 = builder1.build();
-            client.send(message1);
-            client.close();
-        } else {
-        	getChannel().sendMessage(message).queue();
-        }
-    }
+	@Override
+	public void sendMessage(String message)
+	{
+		if (!connected)
+			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
+	
+		List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
+		if (webhook.size() > 0) {
+			System.out.println("Sending message via webhook!");
+			String nick = StringUtils.substringBetween(message, "<", ">");
+			WebhookClientBuilder builder = webhook.get(0).newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
+			WebhookClient client = builder.build();
+			WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
+			builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
+			//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
+			//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
+			builder1.setUsername(nick);
+			WebhookMessage message1 = builder1.build();
+			client.send(message1);
+			client.close();
+		} else {
+			System.out.println("Sending message via fallback");
+			getChannel().sendMessage(message).queue();
+		}
+	}
 
-    @Override
-    public void sendMessage(EndPointMessage message)
-    {
-        if (!connected)
-            throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        switch (message.getType())
-        {
-            case DISCORD:
-                getChannel().sendMessage(message.getDiscordMessage()).queue();
-                break;
-            default:
-                for (String segment : this.divideMessageForSending(message.getMessage()))
-                    sendMessage(String.format("<%s> %s", message.getSenderName(), segment));
-        }
-    }
+	@Override
+	public void sendMessage(EndPointMessage message)
+	{
+		if (!connected)
+			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
+		switch (message.getType())
+		{
+		case DISCORD:
+			getChannel().sendMessage(message.getDiscordMessage()).queue();
+			break;
+		default:
+			for (String segment : this.divideMessageForSending(message.getMessage()))
+				sendMessage(String.format("<%s> %s", message.getSenderName(), segment));
+		}
+	}
 
 	@Override
 	public void sendAction(String message) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void sendAction(EndPointMessage message) {
 		// TODO Auto-generated method stub
-		
+
 	}
 }
