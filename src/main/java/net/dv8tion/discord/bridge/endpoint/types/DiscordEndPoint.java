@@ -94,6 +94,7 @@ public class DiscordEndPoint extends EndPoint
 			//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
 			//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
 			builder1.setUsername(nick);
+			builder1.setAvatarUrl("https://cdn.discordapp.com/avatars/173917481042182144/3b293bcba4bfa6aa8d86bac965ad8a4c.png?size=128");
 			WebhookMessage message1 = builder1.build();
 			client.send(message1);
 			client.close();
