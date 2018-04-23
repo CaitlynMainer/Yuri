@@ -86,7 +86,7 @@ public class DiscordEndPoint extends EndPoint
 	{
 		if (!connected)
 			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-		System.out.println("Getting a list of all webhooks (This can block)");
+		System.out.println("Getting a list of all webhooks for channel " + getChannel().getName() + " (This can block)");
 		List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
 		System.out.println("Got list of webhooks continuing");
 			for (Webhook hook : webhook) {
