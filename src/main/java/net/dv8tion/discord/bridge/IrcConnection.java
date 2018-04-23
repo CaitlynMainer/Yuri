@@ -622,6 +622,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				userToNick.put(userNick, e.getMember());
 				EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
 				String parsedMessage = "";
+				String nick;
 				String tinyURL = "";
 				if (!e.getMessage().getAttachments().isEmpty()) {
 					for (Message.Attachment attach : e.getMessage().getAttachments()) {
