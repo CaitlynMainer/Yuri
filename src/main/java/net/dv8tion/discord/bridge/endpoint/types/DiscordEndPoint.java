@@ -20,6 +20,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
+import net.dv8tion.discord.Settings;
+import net.dv8tion.discord.SettingsManager;
 import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
@@ -39,7 +41,7 @@ public class DiscordEndPoint extends EndPoint
 
 	private String guildId;
 	private String channelId;
-
+	Settings settings = SettingsManager.getInstance().getSettings();
 	public DiscordEndPoint(EndPointInfo info)
 	{
 		super(EndPointType.DISCORD);
@@ -86,7 +88,7 @@ public class DiscordEndPoint extends EndPoint
 			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
 		List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
 			for (Webhook hook : webhook) {
-				if (hook.getName().equalsIgnoreCase("Corded")) {
+				if (hook.getName().equalsIgnoreCase(settings.getWebHookName())) {
 					String nick = StringUtils.substringBetween(message, "<", ">");
 					WebhookClientBuilder builder = hook.newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
 					WebhookClient client = builder.build();
@@ -95,7 +97,7 @@ public class DiscordEndPoint extends EndPoint
 					//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
 					//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
 					builder1.setUsername(nick);
-					builder1.setAvatarUrl("https://cdn.discordapp.com/avatars/173917481042182144/3b293bcba4bfa6aa8d86bac965ad8a4c.png?size=128");
+					builder1.setAvatarUrl(settings.getWebHookAvatar());
 					WebhookMessage message1 = builder1.build();
 					client.send(message1);
 					client.close();

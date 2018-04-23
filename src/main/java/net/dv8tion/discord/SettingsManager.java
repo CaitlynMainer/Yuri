@@ -95,7 +95,8 @@ public class SettingsManager {
         newSettings.setProxyHost("");
         newSettings.setProxyPort("8080");
         newSettings.setUseBetaBuilds(new Boolean(false));
-
+        newSettings.setWebHookName("Yuri");
+        newSettings.setWebHookAvatar("https://cdn.discordapp.com/avatars/173917481042182144/3b293bcba4bfa6aa8d86bac965ad8a4c.png?size=128");
         IrcConnectInfo connectDefault = new IrcConnectInfo();
         connectDefault.setIdentifier("IrcConnection1");
         connectDefault.setHost("");
@@ -149,6 +150,16 @@ public class SettingsManager {
         if (settings.getProxyPort() == null)
         {
             settings.setProxyPort(defaults.getProxyPort());
+            modified = true;
+        }
+        if (settings.getWebHookName() == null)
+        {
+            settings.setWebHookName(defaults.getWebHookName());
+            modified = true;
+        }
+        if (settings.getWebHookAvatar() == null)
+        {
+            settings.setWebHookAvatar(defaults.getWebHookAvatar());
             modified = true;
         }
         if (modified)

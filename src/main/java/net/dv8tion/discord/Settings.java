@@ -32,6 +32,8 @@ public class Settings {
     private Boolean useBetaBuilds;
     private List<IrcConnectInfo> ircConnectInfos;
     private List<BridgeInfo> bridges;
+	private String webHookName;
+	private String webHookAvatar;
 
     public String getBotToken()
     {
@@ -102,4 +104,20 @@ public class Settings {
     {
         this.useBetaBuilds = useBetaBuilds;
     }
+
+    public String getWebHookName() {
+    	return this.webHookName;
+    }
+    
+	public void setWebHookName(String webHookName) {
+		this.webHookName = webHookName;
+	}
+
+	public String getWebHookAvatar() {
+		return this.webHookAvatar;
+	}
+	
+	public void setWebHookAvatar(String avatarURL) {
+		this.webHookAvatar = avatarURL;
+	}
 }
