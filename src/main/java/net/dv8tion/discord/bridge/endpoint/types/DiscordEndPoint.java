@@ -85,22 +85,24 @@ public class DiscordEndPoint extends EndPoint
 		if (!connected)
 			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
 		List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
-		if (webhook.size() > 0) {
-			String nick = StringUtils.substringBetween(message, "<", ">");
-			WebhookClientBuilder builder = webhook.get(0).newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
-			WebhookClient client = builder.build();
-			WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
-			builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
-			//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
-			//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
-			builder1.setUsername(nick);
-			builder1.setAvatarUrl("https://cdn.discordapp.com/avatars/173917481042182144/3b293bcba4bfa6aa8d86bac965ad8a4c.png?size=128");
-			WebhookMessage message1 = builder1.build();
-			client.send(message1);
-			client.close();
-		} else {
+			for (Webhook hook : webhook) {
+				if (hook.getName().equalsIgnoreCase("Corded")) {
+					String nick = StringUtils.substringBetween(message, "<", ">");
+					WebhookClientBuilder builder = hook.newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
+					WebhookClient client = builder.build();
+					WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
+					builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
+					//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
+					//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
+					builder1.setUsername(nick);
+					builder1.setAvatarUrl("https://cdn.discordapp.com/avatars/173917481042182144/3b293bcba4bfa6aa8d86bac965ad8a4c.png?size=128");
+					WebhookMessage message1 = builder1.build();
+					client.send(message1);
+					client.close();
+					return;
+				}
+			}
 			getChannel().sendMessage(message).queue();
-		}
 	}
 
 	@Override
