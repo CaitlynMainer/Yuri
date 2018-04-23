@@ -60,7 +60,7 @@ public class UpdateCommand extends Command
         else
         {
             sendMessage(e, new MessageBuilder()
-                .append("Yui is currently up-to-date compared to the latest ")
+                .append("Yuri is currently up-to-date compared to the latest ")
                 .append(SettingsManager.getInstance().getSettings().getUseBetaBuilds() ? "beta" : "recommended")
                 .append("build.\n")
                 .append("Current version: ", MessageBuilder.Formatting.BOLD)

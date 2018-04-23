@@ -32,17 +32,15 @@ public class InfoCommand extends Command
     {
 
         MessageBuilder builder = new MessageBuilder();
-        builder.append("__Yui Information__\n")
+        builder.append("__Yuri Information__\n")
                 .append("    **Version**:       " + YuriInfo.VERSION.toString().replace("_", "\\_") + "\n")
                 .append("    **ID**:                " + e.getJDA().getSelfUser().getId() + "\n")
                 .append("__Creator__\n")
-                .append("    **Name**:          DV8FromTheWorld\n")
-                .append("    **ID**:                107562988810027008\n")
-                .append("    **Github**:        <http://code.dv8tion.net>\n")
+                .append("    **Name**:          DV8FromTheWorld & Michiyo\n")
                 .append("__Development__\n")
                 .append("    **Language**:   Java 8\n")
                 .append("    **Library**:        JDA - v" + JDAInfo.VERSION + "\n")
-                .append("    **Source**:        <https://github.com/DV8FromTheWorld/Yui>");
+                .append("    **Source**:        <https://github.com/CaitlynMainer/Yuri>");
         sendMessage(e, builder.build());
     }
 
@@ -55,7 +53,7 @@ public class InfoCommand extends Command
     @Override
     public String getDescription()
     {
-        return "Provides information about Yui.";
+        return "Provides information about Yuri.";
     }
 
     @Override
@@ -67,6 +65,6 @@ public class InfoCommand extends Command
     @Override
     public List<String> getUsageInstructions()
     {
-        return Arrays.asList(".info - Prints all information pertaining to the current instance of Yui.");
+        return Arrays.asList(".info - Prints all information pertaining to the current instance of Yuri.");
     }
 }
