@@ -96,7 +96,7 @@ public class SettingsManager {
         newSettings.setProxyPort("8080");
         newSettings.setUseBetaBuilds(new Boolean(false));
         newSettings.setWebHookName("Yuri");
-        newSettings.setWebHookAvatar("https://cdn.discordapp.com/avatars/173917481042182144/3b293bcba4bfa6aa8d86bac965ad8a4c.png?size=128");
+        newSettings.setWebHookAvatar("https://caitlynmainer.com/discord/yuri/generateavatar.php?nick=%IRCUSERNAME%");
         IrcConnectInfo connectDefault = new IrcConnectInfo();
         connectDefault.setIdentifier("IrcConnection1");
         connectDefault.setHost("");

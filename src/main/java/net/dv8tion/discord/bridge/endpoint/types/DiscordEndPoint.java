@@ -102,7 +102,13 @@ public class DiscordEndPoint extends EndPoint
 					//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
 					//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
 					builder1.setUsername(nick);
-					builder1.setAvatarUrl(settings.getWebHookAvatar());
+					String avatar = "";
+					if (hook.getDefaultUser().getAvatarUrl() == null) {
+						avatar = settings.getWebHookAvatar().replace("%IRCUSERNAME%", nick);
+					} else {
+						avatar = hook.getDefaultUser().getAvatarUrl();
+					}
+					builder1.setAvatarUrl(avatar);
 					WebhookMessage message1 = builder1.build();
 					client.send(message1);
 					client.close();
