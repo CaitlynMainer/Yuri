@@ -15,6 +15,11 @@
  */
 package net.dv8tion.discord.bridge.endpoint.types;
 
+import java.util.List;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+
 import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
@@ -22,6 +27,11 @@ import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.Webhook;
+import net.dv8tion.jda.webhook.WebhookClient;
+import net.dv8tion.jda.webhook.WebhookClientBuilder;
+import net.dv8tion.jda.webhook.WebhookMessage;
+import net.dv8tion.jda.webhook.WebhookMessageBuilder;
 
 public class DiscordEndPoint extends EndPoint
 {
@@ -74,7 +84,22 @@ public class DiscordEndPoint extends EndPoint
     {
         if (!connected)
             throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
-        getChannel().sendMessage(message).queue();
+        List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
+        if (webhook.size() > 0) {
+            String nick = StringUtils.substringBetween(message, "<", ">");
+            WebhookClientBuilder builder = webhook.get(0).newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
+            WebhookClient client = builder.build();
+            WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
+            builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
+            //MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
+            //MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
+            builder1.setUsername(nick);
+            WebhookMessage message1 = builder1.build();
+            client.send(message1);
+            client.close();
+        } else {
+        	getChannel().sendMessage(message).queue();
+        }
     }
 
     @Override
