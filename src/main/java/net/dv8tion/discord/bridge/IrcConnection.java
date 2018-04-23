@@ -520,8 +520,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			PrivateMessageReceivedEvent e = (PrivateMessageReceivedEvent) event;
 			if (event.getJDA().getSelfUser().getId().equals(e.getAuthor().getId()))
 				return;
-			String pmTo = e.getMessage().getContent().split(" ")[0].replace(":", "");
-			String pmMessage = e.getMessage().getContent().replace(pmTo + ": ", "<" + e.getAuthor().getName() + ">" + " ");
+			String pmTo = e.getMessage().getContentDisplay().split(" ")[0].replace(":", "");
+			String pmMessage = e.getMessage().getContentDisplay().replace(pmTo + ": ", "<" + e.getAuthor().getName() + ">" + " ");
 
 			bot.sendIRC().message(pmTo, pmMessage);
 		}
