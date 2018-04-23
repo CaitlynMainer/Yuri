@@ -229,14 +229,14 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			sendPrivate(pmToUser.getUser().openPrivateChannel().complete(), pmMessage);
 		}
 	}
-	
-    private void sendPrivate(PrivateChannel channel, String args)
-    {
 
-            channel.sendMessage(new MessageBuilder()
-                    .append(args)
-                    .build()).queue();
-    }
+	private void sendPrivate(PrivateChannel channel, String args)
+	{
+
+		channel.sendMessage(new MessageBuilder()
+				.append(args)
+				.build()).queue();
+	}
 
 	@SuppressWarnings("rawtypes")
 	public void parseMessage(EndPoint endPoint, GenericMessageEvent event, Boolean checkStatus) {
@@ -616,37 +616,38 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		//If this returns null, then this EndPoint isn't part of a bridge.
 		EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromDiscordChannel(e.getChannel()));
 		if (endPoint != null && !abort) {
-			String userNick;
-			userNick = e.getMember().getEffectiveName();
-			userToNick.put(userNick, e.getMember());
-			EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
-			String parsedMessage = "";
-			String nick;
-			String tinyURL = "";
-			if (!e.getMessage().getAttachments().isEmpty()) {
-				for (Message.Attachment attach : e.getMessage().getAttachments()) {
-					tinyURL = makeTiny.getTinyURL(attach.getUrl());
-					parsedMessage += "<" + AntiPing.antiPing(userNick) + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
-				}
-				parsedMessage.replace(tinyURL, "");
-				endPoint.sendMessage(parsedMessage.toString());
-			} else {
-				String messageString = message.getMessage();
-				final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
-				Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-				Matcher matcher = pattern.matcher(messageString);
-				while (matcher.find()) {
-					if (matcher.group(1).contains("\n"))
-						messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
-				}
-				if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
-					message = EndPointMessage.createFromDiscordEvent(e);
-					message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
-					endPoint.sendAction(message);
+			if (e.getMember() != null) {
+				String userNick;
+				userNick = e.getMember().getEffectiveName();
+				userToNick.put(userNick, e.getMember());
+				EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
+				String parsedMessage = "";
+				String tinyURL = "";
+				if (!e.getMessage().getAttachments().isEmpty()) {
+					for (Message.Attachment attach : e.getMessage().getAttachments()) {
+						tinyURL = makeTiny.getTinyURL(attach.getUrl());
+						parsedMessage += "<" + AntiPing.antiPing(userNick) + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
+					}
+					parsedMessage.replace(tinyURL, "");
+					endPoint.sendMessage(parsedMessage.toString());
 				} else {
-					message = EndPointMessage.createFromDiscordEvent(e);
-					message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
-					endPoint.sendMessage(message);
+					String messageString = message.getMessage();
+					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
+					Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+					Matcher matcher = pattern.matcher(messageString);
+					while (matcher.find()) {
+						if (matcher.group(1).contains("\n"))
+							messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
+					}
+					if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
+						message = EndPointMessage.createFromDiscordEvent(e);
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						endPoint.sendAction(message);
+					} else {
+						message = EndPointMessage.createFromDiscordEvent(e);
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						endPoint.sendMessage(message);
+					}
 				}
 			}
 		}
