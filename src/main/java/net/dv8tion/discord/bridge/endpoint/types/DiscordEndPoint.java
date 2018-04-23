@@ -86,9 +86,12 @@ public class DiscordEndPoint extends EndPoint
 	{
 		if (!connected)
 			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
+		System.out.println("Getting a list of all webhooks (This can block)");
 		List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
 			for (Webhook hook : webhook) {
+				System.out.println("This webhook is named " + hook.getName() + " We're looking for " + settings.getWebHookName());
 				if (hook.getName().equalsIgnoreCase(settings.getWebHookName())) {
+					System.out.println("Found webhook " + settings.getWebHookName() + " going to use it to send.");
 					String nick = StringUtils.substringBetween(message, "<", ">");
 					WebhookClientBuilder builder = hook.newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
 					WebhookClient client = builder.build();
@@ -101,9 +104,11 @@ public class DiscordEndPoint extends EndPoint
 					WebhookMessage message1 = builder1.build();
 					client.send(message1);
 					client.close();
+					System.out.println("Sent message via webhook, closing and continuing");
 					return;
 				}
 			}
+			System.out.println("Fallback no webhooks named " + settings.getWebHookName() + " were found.");
 			getChannel().sendMessage(message).queue();
 	}
 
