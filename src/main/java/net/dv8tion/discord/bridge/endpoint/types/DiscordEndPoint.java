@@ -16,6 +16,7 @@
 package net.dv8tion.discord.bridge.endpoint.types;
 
 import java.util.List;
+import java.util.Random;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -104,7 +105,7 @@ public class DiscordEndPoint extends EndPoint
 					builder1.setUsername(nick);
 					String avatar = "";
 					if (hook.getDefaultUser().getAvatarUrl() == null) {
-						avatar = settings.getWebHookAvatar().replace("%IRCUSERNAME%", nick);
+						avatar = settings.getWebHookAvatar().replace("%IRCUSERNAME%", nick) + "&random="+Math.random();
 					} else {
 						avatar = hook.getDefaultUser().getAvatarUrl();
 					}
