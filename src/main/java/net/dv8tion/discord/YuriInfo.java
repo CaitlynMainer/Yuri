@@ -31,8 +31,8 @@ public class YuriInfo
             "@versionRevision@",
             "@versionBuild@"
     );
-    private static final String URL_REGEX = "\\<a href=\"Yuri-withDependencies-[0-9]*\\.[0-9]*\\.[0-9]*_[0-9]*\\.jar\">(Yui-withDependencies-[0-9]*\\.[0-9]*\\.[0-9]*_[0-9]*\\.jar)\\<\\/a\\>";
-    private static final String VERSION_REGEX = "Yuri-withDependencies-([0-9]*\\.[0-9]*\\.[0-9]*_[0-9]*)\\.jar";
+    private static final String URL_REGEX = "\\<a href=\"Yuri-withDependencies-[0-9]*\\.[0-9]*\\.[0-9]*_[0-9]*\\.jar\">(Yui-withDependencies-[0-9]*\\.[0-9]*\\.[0-9]*\\.jar)\\<\\/a\\>";
+    private static final String VERSION_REGEX = "Yuri-withDependencies-([0-9]*\\.[0-9]*\\.[0-9]*)\\.jar";
 
     public static String getLatestRecommendedUrl()
     {
