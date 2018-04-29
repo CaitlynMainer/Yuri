@@ -47,6 +47,7 @@ import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.core.events.user.UserNameUpdateEvent;
+import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.ChannelManager;
 import org.pircbotx.Channel;
@@ -290,7 +291,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		if (event.getMessage().startsWith("!users")) {
 			String users = "";
 			for(String currentKey : userToNick.keySet()) {
-				users += "User: " + userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Guild: " + memberToGuild.get(userToNick.get(currentKey)).getName() + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";
+				if (memberToGuild.get(userToNick.get(currentKey)).getId().equals(endPoint.toEndPointInfo().getConnectorId())) {
+					users += "User: " + userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Guild: " + memberToGuild.get(userToNick.get(currentKey)).getName() + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";				
+				}
 			}
 			event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> " + PasteUtils.paste("Current Discord users:\r\n" + users));
 		}
@@ -556,8 +559,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			}
 		}
 
-		if (event instanceof UserNameUpdateEvent) {
-			UserNameUpdateEvent e = (UserNameUpdateEvent) event;
+		if (event instanceof UserUpdateNameEvent) {
+			UserUpdateNameEvent e = (UserUpdateNameEvent) event;
 			userToNick.remove(e.getOldName());
 			for (Guild currGuild : event.getJDA().getGuilds()) {
 				Member currMember = currGuild.getMemberById(e.getUser().getId());
