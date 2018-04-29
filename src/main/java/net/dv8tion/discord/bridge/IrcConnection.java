@@ -16,6 +16,7 @@
 package net.dv8tion.discord.bridge;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.UnmodifiableIterator;
 
 import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
@@ -54,6 +55,7 @@ import org.pircbotx.Channel;
 import org.pircbotx.Colors;
 import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
+import org.pircbotx.User;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.ActionEvent;
@@ -78,6 +80,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -96,6 +99,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	private PircBotX bot;
 	private HashMap<String, Member> userToNick = new HashMap<>();
 	private HashMap<Member, Guild>	memberToGuild = new HashMap<>();
+	private HashMap<Channel, Guild> channelToGuild = new HashMap<>();
 	private HashMap<Guild, String> 	pinnedMessages = new HashMap<>();
 	private HashMap<Message, Long> messagesToDelete = new HashMap<>();
 	private HashMap<Guild, String> joinedGuilds = new HashMap<>();
@@ -263,6 +267,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 						event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
 					}
 					message.setMessage(message.getMessage().replaceAll("(?i)"+matcher.group(0), checkUser.getAsMention()).replace("@<", "<"));
+					return;
 				}
 			}
 			if(event instanceof ActionEvent) {
@@ -292,12 +297,12 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			String users = "";
 			for(String currentKey : userToNick.keySet()) {
 				if (memberToGuild.get(userToNick.get(currentKey)).getId().equals(endPoint.toEndPointInfo().getConnectorId())) {
-					users += "User: " + userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Guild: " + memberToGuild.get(userToNick.get(currentKey)).getName() + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";				
+					users += userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";				
 				}
 			}
-			event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> " + PasteUtils.paste("Current Discord users:\r\n" + users));
+			event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> Current Discord users: " + PasteUtils.paste(users));
+			return;
 		}
-
 		//If this returns null, then this EndPoint isn't part of a bridge.
 		parseMessage(endPoint, event, checkStatus);
 	}
@@ -400,9 +405,11 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		if (event.getBot().getUserBot().equals(event.getUser())) {
 			EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
+			channelToGuild.put(event.getChannel(), Yuri.getAPI().getGuildById(endPoint.toEndPointInfo().getConnectorId()));
 		} else {
 			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 			if (endPoint != null) {
+				channelToGuild.put(event.getChannel(), Yuri.getAPI().getGuildById(endPoint.toEndPointInfo().getConnectorId()));
 				PreparedStatement getChans = Database.getInstance().getStatement("getChan");
 				try {
 					getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
@@ -605,7 +612,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		if (e.getAuthor().getId() == null){
 			return;
 		}
-		/*String msgContents = e.getMessage().getRawContent();
+
+		/*String msgContents = e.getMessage().getContentDisplay();
 		if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") || 
 				msgContents.contains(" ha"+ "\u200B" +"s left the channel on IRC ") || msgContents.contains(" is n"+ "\u200B" +"ow known as ") ||
 				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ") ||
@@ -620,6 +628,8 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromDiscordChannel(e.getChannel()));
 		if (endPoint != null && !abort) {
 			if (e.getMember() != null) {
+
+
 				String userNick;
 				userNick = e.getMember().getEffectiveName();
 				userToNick.put(userNick, e.getMember());
@@ -635,7 +645,27 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 					parsedMessage.replace(tinyURL, "");
 					endPoint.sendMessage(parsedMessage.toString());
 				} else {
+
 					String messageString = message.getMessage();
+					if (messageString.startsWith("!users")) {
+						String users = "";
+						System.out.println(channelToGuild.size());
+						for(Entry<Channel, Guild> currentKey : channelToGuild.entrySet()) {
+							if (currentKey.getValue().getId().equals(e.getGuild().getId())) {
+								UnmodifiableIterator<User> iterator = bot.getUserChannelDao().getChannel(currentKey.getKey().getName()).getUsers().iterator();
+								while (iterator.hasNext()) {
+									users += iterator.next().getNick() + "\r\n";
+								}
+							}
+						}
+						try {
+							event.getJDA().getTextChannelById(e.getChannel().getId()).sendMessage("<IRC> Current IRC users: " + PasteUtils.paste(users)).queue();
+						} catch (Exception e1) {
+							e1.printStackTrace();
+						}
+						return;
+					}
+
 					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
 					Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 					Matcher matcher = pattern.matcher(messageString);
