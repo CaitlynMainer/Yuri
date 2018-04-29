@@ -65,7 +65,7 @@ public class SetGame extends Command
             game += " " + args[i];
         }
         game = game.trim();
-        Yuri.getAPI().getPresence().setGame(Game.of(null, game));
+        Yuri.getAPI().getPresence().setGame(Game.playing(game));
     }
 
     @Override
