@@ -116,6 +116,7 @@ public class DiscordEndPoint extends EndPoint
 					return;
 				}
 			}
+			getChannel().sendMessage(message).queue();
 		} catch (Exception e1) {
 			getChannel().sendMessage(message).queue();
 		}
