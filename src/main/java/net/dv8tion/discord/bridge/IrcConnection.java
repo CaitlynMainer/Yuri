@@ -267,7 +267,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 						event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
 					}
 					message.setMessage(message.getMessage().replaceAll("(?i)"+matcher.group(0), checkUser.getAsMention()).replace("@<", "<"));
-					return;
 				}
 			}
 			if(event instanceof ActionEvent) {
