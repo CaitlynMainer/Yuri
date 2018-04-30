@@ -36,7 +36,7 @@ import java.util.Arrays;
  */
 public class SettingsManager {
     private static SettingsManager instance;
-    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private Settings settings;
     private final Path configFile = new File(".").toPath().resolve("Config.json");
 
