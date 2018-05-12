@@ -18,12 +18,13 @@ package net.dv8tion.discord.bridge;
 import com.google.common.base.Strings;
 import com.google.common.collect.UnmodifiableIterator;
 
+import net.dv8tion.discord.Settings;
+import net.dv8tion.discord.SettingsManager;
 import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointManager;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
-import net.dv8tion.discord.commands.Command;
 import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.PasteUtils;
@@ -32,12 +33,10 @@ import net.dv8tion.jda.core.MessageBuilder;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.ReadyEvent;
-import net.dv8tion.jda.core.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
@@ -47,7 +46,6 @@ import net.dv8tion.jda.core.events.message.guild.GuildMessageDeleteEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
-import net.dv8tion.jda.core.events.user.UserNameUpdateEvent;
 import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.ChannelManager;
@@ -70,7 +68,12 @@ import org.pircbotx.hooks.events.QuitEvent;
 import org.pircbotx.hooks.events.TopicEvent;
 import org.pircbotx.hooks.types.GenericMessageEvent;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -91,8 +94,39 @@ import java.util.regex.Pattern;
 
 public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
 {
+	
+	private void sendGet(String nick, String inURL) throws Exception {
+		String USER_AGENT = "Mozilla/5.0";
+		String url = settings.getWebHookAvatarUpload();
+
+		URL obj = new URL(url);
+		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+		// optional default is GET
+		con.setRequestMethod("GET");
+
+		//add request header
+		con.setRequestProperty("User-Agent", USER_AGENT);
+
+		int responseCode = con.getResponseCode();
+		System.out.println("\nSending 'GET' request to URL : " + url);
+		System.out.println("Response Code : " + responseCode);
+
+		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+		StringBuffer response = new StringBuffer();
+
+		response.append(nick);
+		response.append(inURL);
+		in.close();
+
+		//print result
+		System.out.println(response.toString());
+
+	}
+	
 	public static final int MESSAGE_DELAY_AMOUNT = 250;
 
+	Settings settings = SettingsManager.getInstance().getSettings();
 	private final IrcConnectInfo info;
 	private String identifier;
 	private Thread botThread;
@@ -265,6 +299,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 							playing = " Playing: " + checkUser.getGame().getName();
 						}
 						event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
+						return;
 					}
 					message.setMessage(message.getMessage().replaceAll("(?i)"+matcher.group(0), checkUser.getAsMention()).replace("@<", "<"));
 				}
@@ -302,6 +337,20 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> Current Discord users: " + PasteUtils.paste(users));
 			return;
 		}
+
+		if (event.getMessage().startsWith("!setmyavatar")) {
+			if (event.getUser().isVerified()) {
+				try {
+					this.sendGet(event.getUser().getNick(), URLEncoder.encode(event.getMessage().substring("!setmyavatar".length() + 1), "UTF-8"));
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					event.getBot().sendIRC().message(event.getChannel().getName(), "There was an error processing this request poke Mimiru!");
+				}
+			}
+			return;
+		}
+
 		//If this returns null, then this EndPoint isn't part of a bridge.
 		parseMessage(endPoint, event, checkStatus);
 	}
