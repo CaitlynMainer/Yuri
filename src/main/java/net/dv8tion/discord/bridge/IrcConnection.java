@@ -97,7 +97,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	
 	private void sendGet(String nick, String inURL) throws Exception {
 		String USER_AGENT = "Mozilla/5.0";
-		String url = settings.getWebHookAvatarUpload();
+		String url = settings.getWebHookAvatarUpload().replace("%IRCUSERNAME%",nick).replace("%REMOTE%",inURL);
 
 		URL obj = new URL(url);
 		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
@@ -114,9 +114,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
 		StringBuffer response = new StringBuffer();
-
-		response.append(nick);
-		response.append(inURL);
 		in.close();
 
 		//print result
