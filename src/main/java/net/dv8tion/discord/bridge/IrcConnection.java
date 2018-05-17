@@ -257,7 +257,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
 			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
 			while (matcher.find()) {
-				Member checkUser = userToNick.get(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("[\\p{Cf}]", ""));
+				Member checkUser = userToNick.get(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("\u200B", ""));
 				if (userToNick.containsKey(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("[\\p{Cf}]", ""))) {
 					if (checkStatus) {
 						String playing = "";
