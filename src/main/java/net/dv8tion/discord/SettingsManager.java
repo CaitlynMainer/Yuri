@@ -97,6 +97,7 @@ public class SettingsManager {
         newSettings.setUseBetaBuilds(new Boolean(false));
         newSettings.setWebHookName("Yuri");
         newSettings.setWebHookAvatar("https://caitlynmainer.com/discord/yuri/generateavatar.php?nick=%IRCUSERNAME%");
+        newSettings.setWebHookAvatarUpload("https://caitlynmainer.com/discord/yuri/fetchavatar.php?nick=%IRCUSERNAME%&remote=%REMOTE%");
         IrcConnectInfo connectDefault = new IrcConnectInfo();
         connectDefault.setIdentifier("IrcConnection1");
         connectDefault.setHost("");
@@ -160,6 +161,11 @@ public class SettingsManager {
         if (settings.getWebHookAvatar() == null)
         {
             settings.setWebHookAvatar(defaults.getWebHookAvatar());
+            modified = true;
+        }
+        if (settings.getWebHookAvatarUpload() == null)
+        {
+            settings.setWebHookAvatarUpload(defaults.getWebHookAvatarUpload());
             modified = true;
         }
         if (modified)

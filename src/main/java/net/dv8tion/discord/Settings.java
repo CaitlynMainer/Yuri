@@ -34,6 +34,7 @@ public class Settings {
     private List<BridgeInfo> bridges;
 	private String webHookName;
 	private String webHookAvatar;
+	private String webHookAvatarUpload;
 
     public String getBotToken()
     {
@@ -119,5 +120,14 @@ public class Settings {
 	
 	public void setWebHookAvatar(String avatarURL) {
 		this.webHookAvatar = avatarURL;
+	}
+	
+	public void setWebHookAvatarUpload(String avatarUploadURL) {
+		this.webHookAvatarUpload = avatarUploadURL;
+	}
+	
+	public String getWebHookAvatarUpload() {
+		// TODO Auto-generated method stub
+		return this.webHookAvatarUpload;
 	}
 }
