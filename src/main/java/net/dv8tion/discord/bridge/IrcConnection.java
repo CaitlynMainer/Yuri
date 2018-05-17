@@ -299,6 +299,11 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 						return;
 					}
 					message.setMessage(message.getMessage().replaceAll("(?i)"+matcher.group(0), checkUser.getAsMention()).replace("@<", "<"));
+				} else {
+					if (checkStatus) {
+						event.getBot().sendIRC().message(chanName, "<Discord> " + matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("\u200B", "") + " is not a member of this server.");
+						return;
+					}
 				}
 			}
 			if(event instanceof ActionEvent) {
