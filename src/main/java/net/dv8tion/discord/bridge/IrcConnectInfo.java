@@ -116,6 +116,7 @@ public class IrcConnectInfo
     {
         Configuration.Builder<PircBotX> builder = new Configuration.Builder<PircBotX>();
         builder.setName(nick);
+	builder.setLogin(nick);
         builder.setSocketTimeout(1000 * 30);
         builder.setVersion("Yuri " + YuriInfo.VERSION + " A Discord <-> IRC Relay bot.");
         if (identNick != null && !identNick.isEmpty())
