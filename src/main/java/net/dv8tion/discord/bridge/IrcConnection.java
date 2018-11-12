@@ -256,6 +256,18 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 
 	@Override
 	public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
+		if (event.getMessage().split(" ")[0].equals("!mapid")) {
+			System.out.println(userToNick.size() + " -- " + event.getMessage().split(" ")[1].replace("@", "").replace("\"", "").replaceAll("\u200B", ""));
+			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
+			Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
+			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
+			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
+			while (matcher.find()) {
+				Member checkUser = userToNick.get(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("\u200B", ""));
+				System.out.println("Moop " + checkUser.getNickname());
+					event.getBot().sendIRC().message(event.getUser().getNick(), checkUser.getUser().getId());
+			}
+		}
 		String pmTo = event.getMessage().split(" ")[0].replace(":", "");
 		String pmMessage = Colors.removeFormattingAndColors(event.getMessage().replace(pmTo + ": ", "<" + event.getUser().getNick() + "> "));
 		if (userToNick.containsKey(pmTo)) {
