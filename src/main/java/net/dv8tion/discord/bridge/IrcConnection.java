@@ -296,7 +296,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 				chanName = ((ActionEvent) event).getChannel().getName();
 			}
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
-			Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
+			Pattern pattern = Pattern.compile("@[^\\s\"']+|@\"([^\"]*)\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
 			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
 			while (matcher.find()) {
