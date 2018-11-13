@@ -24,6 +24,7 @@ import net.dv8tion.discord.music.PlayerControl;
 import net.dv8tion.discord.util.CaseInsensitiveMap;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.GoogleSearch;
+import net.dv8tion.discord.util.httpd;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
@@ -125,7 +126,13 @@ public class Yuri
         	channelNicks = new CaseInsensitiveMap<>();
         	ignoredUsers = new CaseInsensitiveMap<>();
             Settings settings = SettingsManager.getInstance().getSettings();
-
+            try {
+				httpd.setup();
+	            httpd.start();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
             JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT).setToken(settings.getBotToken());
             Database.getInstance();
             Permissions.setupPermissions();

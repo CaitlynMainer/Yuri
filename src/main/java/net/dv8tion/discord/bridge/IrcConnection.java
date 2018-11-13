@@ -71,8 +71,10 @@ import org.pircbotx.hooks.types.GenericMessageEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -128,7 +130,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	private String identifier;
 	private Thread botThread;
 	private PircBotX bot;
-	private HashMap<String, Member> userToNick = new HashMap<>();
+	public static HashMap<String, Member> userToNick = new HashMap<>();
 	private HashMap<Member, Guild>	memberToGuild = new HashMap<>();
 	private HashMap<Channel, Guild> channelToGuild = new HashMap<>();
 	private HashMap<Guild, String> 	pinnedMessages = new HashMap<>();
@@ -257,7 +259,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	@Override
 	public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
 		if (event.getMessage().split(" ")[0].equals("!mapid")) {
-			System.out.println(userToNick.size() + " -- " + event.getMessage().split(" ")[1].replace("@", "").replace("\"", "").replaceAll("\u200B", ""));
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
 			Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
@@ -788,5 +789,22 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			}
 		}
 		return channel;
+	}
+
+	public static String getIDFromUser(String target) {
+		String input = target.toLowerCase().replace("/", "").replace("@", "").replace("\"", "").replaceAll("\u200B", "");
+		try {
+			input = URLDecoder.decode(input, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (userToNick.containsKey(input)) {
+			Member checkUser = userToNick.get(input);
+			return checkUser.getUser().getId();
+		} else {
+			return input;
+		}
+		
 	}
 }
