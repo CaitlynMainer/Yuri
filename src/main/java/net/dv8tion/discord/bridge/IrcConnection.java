@@ -676,7 +676,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		}
 
 		String msgContents = e.getMessage().getContentDisplay();
-		if (msgContents.contains("discord.amazingsexdating.com") {
+		if (msgContents.contains("discord.amazingsexdating.com")) {
 			messagesToDelete.put(e.getMessage(), System.currentTimeMillis() + 10);
 			return;
 		}
