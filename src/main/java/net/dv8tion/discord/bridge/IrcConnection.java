@@ -675,7 +675,12 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			return;
 		}
 
-		/*String msgContents = e.getMessage().getContentDisplay();
+		String msgContents = e.getMessage().getContentDisplay();
+		if (msgContents.contains("discord.amazingsexdating.com") {
+			messagesToDelete.put(e.getMessage(), System.currentTimeMillis() + 10);
+			return;
+		}
+		/*
 		if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") || 
 				msgContents.contains(" ha"+ "\u200B" +"s left the channel on IRC ") || msgContents.contains(" is n"+ "\u200B" +"ow known as ") ||
 				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ") ||
