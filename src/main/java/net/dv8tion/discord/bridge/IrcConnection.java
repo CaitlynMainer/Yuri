@@ -318,7 +318,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 					}
 				}
 			}
-			message.setMessage(message.getMessage().replaceAll("@everyone"," I just tried to ping everyone. "));
+			message.setMessage(message.getMessage().replaceAll("@everyone"," I just tried to ping everyone. ").replaceAll("@here"," I just tried to ping everyone. "));
 			if(event instanceof ActionEvent) {
 				message.setMessage("_" + message.getMessage() + "_");
 			}
