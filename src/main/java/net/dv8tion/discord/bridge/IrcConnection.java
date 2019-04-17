@@ -742,11 +742,11 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 					}
 					if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
 						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", "").replaceAll("(@everyone)"," I just tried to ping everyone. "));
 						endPoint.sendAction(message);
 					} else {
 						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", "").replaceAll("(@everyone)"," I just tried to ping everyone. "));
 						endPoint.sendMessage(message);
 					}
 				}
