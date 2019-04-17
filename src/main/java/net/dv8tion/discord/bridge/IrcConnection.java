@@ -318,6 +318,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 					}
 				}
 			}
+			message.setMessage(message.getMessage().replaceAll("@everyone"," I just tried to ping everyone. "));
 			if(event instanceof ActionEvent) {
 				message.setMessage("_" + message.getMessage() + "_");
 			}
@@ -742,11 +743,11 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 					}
 					if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
 						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", "").replaceAll("(@everyone)"," I just tried to ping everyone. "));
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
 						endPoint.sendAction(message);
 					} else {
 						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", "").replaceAll("(@everyone)"," I just tried to ping everyone. "));
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
 						endPoint.sendMessage(message);
 					}
 				}
