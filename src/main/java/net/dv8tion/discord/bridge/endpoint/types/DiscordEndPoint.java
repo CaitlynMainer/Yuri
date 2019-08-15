@@ -120,6 +120,7 @@ public class DiscordEndPoint extends EndPoint
 				}
 				getChannel().sendMessage(message).queue();
 			} else {
+				System.out.println("ERROR! Do not have \"Manage WebHooks\" Permission!");
 				getChannel().sendMessage(message).queue();
 			}
 		} catch (Exception e1) {

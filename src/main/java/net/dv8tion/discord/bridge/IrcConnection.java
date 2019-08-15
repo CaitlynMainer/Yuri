@@ -764,8 +764,10 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 						throw new RuntimeException();
 					}
 					for (Webhook hook : webhook) {
-						if (hook.getId().equals(e.getAuthor().getId())) {
-							return;
+						if (hook.getName().equalsIgnoreCase(settings.getWebHookName())) {
+							if (hook.getId().equals(e.getAuthor().getId())) {
+								return;
+							}
 						}
 					}
 				}
