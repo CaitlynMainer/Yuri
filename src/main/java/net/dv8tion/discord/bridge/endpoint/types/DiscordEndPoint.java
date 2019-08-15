@@ -28,6 +28,7 @@ import net.dv8tion.discord.bridge.endpoint.EndPoint;
 import net.dv8tion.discord.bridge.endpoint.EndPointInfo;
 import net.dv8tion.discord.bridge.endpoint.EndPointMessage;
 import net.dv8tion.discord.bridge.endpoint.EndPointType;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.entities.Webhook;
@@ -89,34 +90,38 @@ public class DiscordEndPoint extends EndPoint
 			throw new IllegalStateException("Cannot send message to disconnected EndPoint! EndPoint: " + this.toEndPointInfo().toString());
 		try
 		{
-			List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
-			if (webhook.size() == 0) {
-				throw new RuntimeException();
-			}
-			for (Webhook hook : webhook) {
-				if (hook.getName().equalsIgnoreCase(settings.getWebHookName())) {
-					String nick = StringUtils.substringBetween(message, "<", ">");
-					WebhookClientBuilder builder = hook.newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
-					WebhookClient client = builder.build();
-					WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
-					builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
-					//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
-					//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
-					builder1.setUsername(nick);
-					String avatar = "";
-					if (hook.getDefaultUser().getAvatarUrl() == null) {
-						avatar = settings.getWebHookAvatar().replace("%IRCUSERNAME%", nick) + "&random="+Math.random();
-					} else {
-						avatar = hook.getDefaultUser().getAvatarUrl();
-					}
-					builder1.setAvatarUrl(avatar);
-					WebhookMessage message1 = builder1.build();
-					client.send(message1);
-					client.close();
-					return;
+			if (getChannel().getGuild() != null && getChannel().getGuild().getSelfMember().hasPermission(Permission.MANAGE_WEBHOOKS)) {
+				List<Webhook> webhook = getChannel().getWebhooks().complete(); // some webhook instance
+				if (webhook.size() == 0) {
+					throw new RuntimeException();
 				}
+				for (Webhook hook : webhook) {
+					if (hook.getName().equalsIgnoreCase(settings.getWebHookName())) {
+						String nick = StringUtils.substringBetween(message, "<", ">");
+						WebhookClientBuilder builder = hook.newClient(); //Get the first webhook.. I can't think of a better way to do this ATM.
+						WebhookClient client = builder.build();
+						WebhookMessageBuilder builder1 = new WebhookMessageBuilder();
+						builder1.setContent(message.replaceFirst(Pattern.quote("<"+nick+">"), ""));
+						//MessageEmbed firstEmbed = new EmbedBuilder().setColor(Color.RED).setDescription("This is one embed").build();
+						//MessageEmbed secondEmbed = new EmbedBuilder().setColor(Color.GREEN).setDescription("This is another embed").build();
+						builder1.setUsername(nick);
+						String avatar = "";
+						if (hook.getDefaultUser().getAvatarUrl() == null) {
+							avatar = settings.getWebHookAvatar().replace("%IRCUSERNAME%", nick) + "&random="+Math.random();
+						} else {
+							avatar = hook.getDefaultUser().getAvatarUrl();
+						}
+						builder1.setAvatarUrl(avatar);
+						WebhookMessage message1 = builder1.build();
+						client.send(message1);
+						client.close();
+						return;
+					}
+				}
+				getChannel().sendMessage(message).queue();
+			} else {
+				getChannel().sendMessage(message).queue();
 			}
-			getChannel().sendMessage(message).queue();
 		} catch (Exception e1) {
 			getChannel().sendMessage(message).queue();
 		}

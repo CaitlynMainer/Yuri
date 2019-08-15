@@ -62,7 +62,11 @@ public class EndPointMessage
 		message.messageType = EndPointType.DISCORD;
 		message.setDiscordMessage(event.getMessage());
 		//Get the users nickname if it's set.
-		message.senderName = event.getMember().getEffectiveName();
+		if (!event.isWebhookMessage()) {
+			message.senderName = event.getMember().getEffectiveName();
+		} else {
+			message.senderName = event.getAuthor().getName();
+		}
 		message.discordEvent = event;
 		message.discordUser = event.getAuthor();
 		return message;

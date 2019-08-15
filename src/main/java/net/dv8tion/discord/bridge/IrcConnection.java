@@ -30,11 +30,13 @@ import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.PasteUtils;
 import net.dv8tion.discord.util.makeTiny;
 import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.Permission;
 import net.dv8tion.jda.core.entities.Guild;
 import net.dv8tion.jda.core.entities.Member;
 import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.PrivateChannel;
 import net.dv8tion.jda.core.entities.TextChannel;
+import net.dv8tion.jda.core.entities.Webhook;
 import net.dv8tion.jda.core.events.Event;
 import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
@@ -49,6 +51,8 @@ import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.core.hooks.EventListener;
 import net.dv8tion.jda.core.managers.ChannelManager;
+import net.dv8tion.jda.webhook.WebhookMessage;
+
 import org.pircbotx.Channel;
 import org.pircbotx.Colors;
 import org.pircbotx.Configuration.Builder;
@@ -96,7 +100,7 @@ import java.util.regex.Pattern;
 
 public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
 {
-	
+
 	private void sendGet(String nick, String inURL) throws Exception {
 		String USER_AGENT = "Mozilla/5.0";
 		String url = settings.getWebHookAvatarUpload().replace("%IRCUSERNAME%",nick).replace("%REMOTE%",inURL);
@@ -122,7 +126,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		System.out.println(response.toString());
 
 	}
-	
+
 	public static final int MESSAGE_DELAY_AMOUNT = 250;
 
 	Settings settings = SettingsManager.getInstance().getSettings();
@@ -670,8 +674,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			return;
 
 		GuildMessageReceivedEvent e = (GuildMessageReceivedEvent) event;
-
-		//Basically: If we are the ones that sent the message, don't send it to IRC.
+		//Null = Webhook?
 		if (e.getAuthor().getId() == null){
 			return;
 		}
@@ -689,6 +692,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 			messagesToDelete.put(e.getMessage(), System.currentTimeMillis() + 30000);
 		}*/
 
+		//Basically: If we are the ones that sent the message, don't send it to IRC.
 		if (event.getJDA().getSelfUser().getId().equals(e.getAuthor().getId()))
 			return;
 
@@ -751,6 +755,24 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 						endPoint.sendMessage(message);
 					}
 				}
+			} else if (e.getMessage().isWebhookMessage()) {
+				EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
+				String messageString = message.getMessage();
+				if (e.getGuild() != null && e.getGuild().getSelfMember().hasPermission(Permission.MANAGE_WEBHOOKS)) {
+					List<Webhook> webhook = e.getChannel().getWebhooks().complete(); // some webhook instance
+					if (webhook.size() == 0) {
+						throw new RuntimeException();
+					}
+					for (Webhook hook : webhook) {
+						if (hook.getId().equals(e.getAuthor().getId())) {
+							return;
+						}
+					}
+				}
+
+				message = EndPointMessage.createFromDiscordEvent(e);
+				message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+				endPoint.sendMessage(message);
 			}
 		}
 	}
@@ -811,6 +833,6 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 		} else {
 			return input;
 		}
-		
+
 	}
 }
