@@ -17,6 +17,8 @@ package net.dv8tion.discord.bridge.endpoint;
 
 import java.util.ArrayList;
 
+import org.pircbotx.Colors;
+
 
 public abstract class EndPoint
 {
@@ -53,9 +55,49 @@ public abstract class EndPoint
 
     public ArrayList<String> divideMessageForSending(String message)
     {
+    	
+    	int i = 0;
+    	while (message.indexOf("**") > -1)
+    	{
+    		String tag = i % 2 == 0 ? Colors.BOLD : Colors.NORMAL;
+    	    message = message.substring(0, message.indexOf("**")) + tag + message.substring(message.indexOf("**")+2);
+    	    ++i;
+    	}
+    	
+    	i = 0;
+     	while (message.indexOf("__") > -1)
+     	{
+     	    String tag = i % 2 == 0 ? Colors.UNDERLINE : Colors.NORMAL;
+     	    message = message.substring(0, message.indexOf("__")) + tag + message.substring(message.indexOf("__")+2);
+     	    ++i;
+     	}
+     	
+    	i = 0;
+     	while (message.indexOf("||") > -1)
+     	{
+     	    String tag = i % 2 == 0 ? Colors.BLACK +",1" : Colors.NORMAL;
+     	    message = message.substring(0, message.indexOf("||")) + tag + message.substring(message.indexOf("||")+2);
+     	    ++i;
+     	}
+    	
+    	i = 0;
+     	while (message.indexOf('_') > -1)
+     	{
+     	    String tag = i % 2 == 0 ? Colors.ITALICS : Colors.NORMAL;
+     	    message = message.substring(0, message.indexOf('_')) + tag + message.substring(message.indexOf('_')+1);
+     	    ++i;
+     	}
+    	
+     	i = 0;
+    	while (message.indexOf('*') > -1)
+    	{
+    		String tag = i % 2 == 0 ? Colors.ITALICS : Colors.NORMAL;
+    	    message = message.substring(0, message.indexOf('*')) + tag + message.substring(message.indexOf('*')+1);
+    	    ++i;
+    	}
         ArrayList<String> messageParts = new ArrayList<String>();
         while (message.length() >  getMaxMessageLength())
-        {
+        {         	
             //Finds where the last complete word is in the IrcConnection.MAX_LINE_LENGTH length character string.
             int lastSpace = message.substring(0, getMaxMessageLength()).lastIndexOf(" ");
             String smallerLine;

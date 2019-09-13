@@ -98,7 +98,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class IrcConnection extends ListenerAdapter<PircBotX> implements EventListener
+public class IrcConnection extends ListenerAdapter implements EventListener
 {
 
 	private void sendGet(String nick, String inURL) throws Exception {
@@ -145,7 +145,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	{
 		this.info = info;
 		identifier = info.getIdentifier();
-		Builder<PircBotX> builder = info.getIrcConfigBuilder();
+		Builder builder = info.getIrcConfigBuilder();
 		builder.addListener(this);
 		builder.setMessageDelay(MESSAGE_DELAY_AMOUNT);
 		builder.setAutoReconnect(true);
@@ -222,9 +222,9 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	// -- IRC --
 
 	@Override
-	public void onConnect(ConnectEvent<PircBotX> event)
+	public void onConnect(ConnectEvent event)
 	{
-		ConnectEvent<PircBotX> e = event;
+		ConnectEvent e = event;
 		//If, after connection, we don't have the defined nick AND we have auth info, attempt to ghost
 		// account using our desired nick and switch to our desired nick.
 		if (!event.getBot().getUserBot().getNick().equals(info.getNick()) && !Strings.isNullOrEmpty(info.getIdentPass())) {
@@ -242,7 +242,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onTopic(TopicEvent<PircBotX> event) {
+	public void onTopic(TopicEvent event) {
 		//If this returns null, then this EndPoint isn't part of a bridge.
 		EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 		if (endPoint != null) {
@@ -261,7 +261,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) {
+	public void onPrivateMessage(PrivateMessageEvent event) {
 		if (event.getMessage().split(" ")[0].equals("!mapid")) {
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
 			Pattern pattern = Pattern.compile("@[^\\s\"']+\\b+|@\"([^\"]*)\"|@'([^']*)'");
@@ -331,7 +331,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onMessage(MessageEvent<PircBotX> event)
+	public void onMessage(MessageEvent event)
 	{
 		if (Yuri.ignoredUsers.containsKey(event.getUser().getNick())) {
 			return;
@@ -375,7 +375,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onAction(ActionEvent<PircBotX> event)
+	public void onAction(ActionEvent event)
 	{
 		if (Yuri.ignoredUsers.containsKey(event.getUser().getNick())) {
 			return;
@@ -390,7 +390,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onQuit(QuitEvent<PircBotX> event) {
+	public void onQuit(QuitEvent event) {
 		String nick = event.getUser().getNick();
 		for (String channelName : Yuri.channelNicks.keySet()) {
 			if (Yuri.channelNicks.get(channelName).contains(nick)) {
@@ -412,7 +412,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onPart(PartEvent<PircBotX> event) {
+	public void onPart(PartEvent event) {
 		//if (messages.containsValue(event.getUser().getNick())) {
 		PreparedStatement getChans = Database.getInstance().getStatement("getChan");
 		try {
@@ -430,7 +430,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onNickChange(NickChangeEvent<PircBotX> event) {
+	public void onNickChange(NickChangeEvent event) {
 		String nick = event.getOldNick();
 		for (String channelName : Yuri.channelNicks.keySet()) {
 			if (Yuri.channelNicks.get(channelName).contains(nick)) {
@@ -452,7 +452,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onKick(KickEvent<PircBotX> event) {
+	public void onKick(KickEvent event) {
 		PreparedStatement getChans = Database.getInstance().getStatement("getChan");
 		try {
 			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
@@ -468,7 +468,7 @@ public class IrcConnection extends ListenerAdapter<PircBotX> implements EventLis
 	}
 
 	@Override
-	public void onJoin(JoinEvent<PircBotX> event) {
+	public void onJoin(JoinEvent event) {
 		if (event.getBot().getUserBot().equals(event.getUser())) {
 			EndPointManager.getInstance().createEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));
 			EndPoint endPoint = BridgeManager.getInstance().getOtherEndPoint(EndPointInfo.createFromIrcChannel(identifier, event.getChannel()));

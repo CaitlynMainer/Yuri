@@ -37,7 +37,7 @@ public class EndPointMessage
 	private Message discordMessage;
 
 	// -- irc specific --
-	private GenericMessageEvent<? extends PircBotX> ircEvent;
+	private GenericMessageEvent ircEvent;
 	private org.pircbotx.User ircUser;
 
 	private EndPointMessage() {}
@@ -93,7 +93,7 @@ public class EndPointMessage
 		return message;
 	}
 
-	public static EndPointMessage createFromIrcEvent(MessageEvent<? extends PircBotX> event)
+	public static EndPointMessage createFromIrcEvent(MessageEvent event)
 	{
 		EndPointMessage message = new EndPointMessage();
 		message.message = event.getMessage();
@@ -104,7 +104,7 @@ public class EndPointMessage
 		return message;
 	}
 
-	public static EndPointMessage createFromIrcEvent(GenericMessageEvent<? extends PircBotX> event)
+	public static EndPointMessage createFromIrcEvent(GenericMessageEvent event)
 	{
 		EndPointMessage message = new EndPointMessage();
 		message.message = event.getMessage();
@@ -172,7 +172,7 @@ public class EndPointMessage
 
 	// ------ IRC Specific ------
 
-	public GenericMessageEvent<? extends PircBotX> getIrcEvent()
+	public GenericMessageEvent getIrcEvent()
 	{
 		if (!messageType.equals(EndPointType.IRC))
 			throw new IllegalStateException("Attemped to get IRC event for non-IRC message");

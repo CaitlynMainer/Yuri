@@ -16,6 +16,7 @@
 package net.dv8tion.discord.bridge;
 
 import org.pircbotx.Configuration;
+import org.pircbotx.Configuration.Builder;
 import org.pircbotx.PircBotX;
 import org.pircbotx.cap.SASLCapHandler;
 
@@ -112,9 +113,9 @@ public class IrcConnectInfo
 		this.useSASL = b;
 	}
     
-    public Configuration.Builder<PircBotX> getIrcConfigBuilder()
+    public Configuration.Builder getIrcConfigBuilder()
     {
-        Configuration.Builder<PircBotX> builder = new Configuration.Builder<PircBotX>();
+        Configuration.Builder builder = new Configuration.Builder();
         builder.setName(nick);
 	builder.setLogin(nick);
         builder.setSocketTimeout(1000 * 30);
