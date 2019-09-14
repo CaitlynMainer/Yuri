@@ -55,7 +55,7 @@ public abstract class EndPoint
 
     public ArrayList<String> divideMessageForSending(String message)
     {
-    	
+    	/*
     	int i = 0;
     	while (message.indexOf("**") > -1)
     	{
@@ -95,6 +95,7 @@ public abstract class EndPoint
     	    message = message.substring(0, message.indexOf('*')) + tag + message.substring(message.indexOf('*')+1);
     	    ++i;
     	}
+    	*/
         ArrayList<String> messageParts = new ArrayList<String>();
         while (message.length() >  getMaxMessageLength())
         {         	
