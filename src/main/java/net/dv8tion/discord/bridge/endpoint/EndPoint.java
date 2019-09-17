@@ -16,8 +16,13 @@
 package net.dv8tion.discord.bridge.endpoint;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.validator.UrlValidator;
 import org.pircbotx.Colors;
+
+import net.dv8tion.discord.Yuri;
 
 
 public abstract class EndPoint
@@ -55,47 +60,50 @@ public abstract class EndPoint
 
     public ArrayList<String> divideMessageForSending(String message)
     {
-    	/*
-    	int i = 0;
-    	while (message.indexOf("**") > -1)
-    	{
-    		String tag = i % 2 == 0 ? Colors.BOLD : Colors.NORMAL;
-    	    message = message.substring(0, message.indexOf("**")) + tag + message.substring(message.indexOf("**")+2);
-    	    ++i;
+    	
+
+    	
+    	// Pattern for recognizing a URL, based off RFC 3986
+    	Pattern urlPattern = Pattern.compile(
+    	        "(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
+    	                + "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
+    	                + "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
+    	        Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+    	Matcher matcher = urlPattern.matcher(message);
+    	if (!matcher.find()) {
+        	Pattern boldPattern = Pattern.compile("(\\*\\*([^\\*\\*]*)\\*\\*)");
+        	Matcher boldMatcher = boldPattern.matcher(message);
+        	while (boldMatcher.find()) {
+        	    message = message.replace(boldMatcher.group(1), Colors.BOLD + boldMatcher.group(2) + Colors.NORMAL);
+        	}
+        	
+        	Pattern underlinePattern = Pattern.compile("(\\_\\_([^\\_\\_]*)\\_\\_)");
+        	Matcher underlineMatcher = underlinePattern.matcher(message);
+        	while (underlineMatcher.find()) {
+        	    message = message.replace(underlineMatcher.group(1), Colors.UNDERLINE + underlineMatcher.group(2) + Colors.NORMAL);
+        	}
+        	
+        	Pattern italicPattern = Pattern.compile("(\\*([^\\*]*)\\*)");
+        	Matcher italicMatcher = italicPattern.matcher(message);
+        	while (italicMatcher.find()) {
+        	    message = message.replace(italicMatcher.group(1), Colors.ITALICS + italicMatcher.group(2) + Colors.NORMAL);
+        	}
+    		
+        	Pattern italicPattern2 = Pattern.compile("(\\_([^\\_]*)\\_)");
+        	Matcher italicMatcher2 = italicPattern2.matcher(message);
+        	while (italicMatcher2.find()) {
+        	    message = message.replace(italicMatcher2.group(1), Colors.ITALICS + italicMatcher2.group(2) + Colors.NORMAL);
+        	}
+        	
+        	Pattern spoilerPattern = Pattern.compile("(\\|\\|([^\\|\\|]*)\\|\\|)");
+        	Matcher spoilerMatcher = spoilerPattern.matcher(message);
+        	while (spoilerMatcher.find()) {
+        	    message = message.replace(spoilerMatcher.group(1), "SPOILER: " + Colors.BLACK +",1" + spoilerMatcher.group(2) + Colors.NORMAL);
+        	}
     	}
-    	
-    	i = 0;
-     	while (message.indexOf("__") > -1)
-     	{
-     	    String tag = i % 2 == 0 ? Colors.UNDERLINE : Colors.NORMAL;
-     	    message = message.substring(0, message.indexOf("__")) + tag + message.substring(message.indexOf("__")+2);
-     	    ++i;
-     	}
-     	
-    	i = 0;
-     	while (message.indexOf("||") > -1)
-     	{
-     	    String tag = i % 2 == 0 ? Colors.BLACK +",1" : Colors.NORMAL;
-     	    message = message.substring(0, message.indexOf("||")) + tag + message.substring(message.indexOf("||")+2);
-     	    ++i;
-     	}
-    	
-    	i = 0;
-     	while (message.indexOf('_') > -1)
-     	{
-     	    String tag = i % 2 == 0 ? Colors.ITALICS : Colors.NORMAL;
-     	    message = message.substring(0, message.indexOf('_')) + tag + message.substring(message.indexOf('_')+1);
-     	    ++i;
-     	}
-    	
-     	i = 0;
-    	while (message.indexOf('*') > -1)
-    	{
-    		String tag = i % 2 == 0 ? Colors.ITALICS : Colors.NORMAL;
-    	    message = message.substring(0, message.indexOf('*')) + tag + message.substring(message.indexOf('*')+1);
-    	    ++i;
-    	}
-    	*/
+
+
+
         ArrayList<String> messageParts = new ArrayList<String>();
         while (message.length() >  getMaxMessageLength())
         {         	

@@ -88,6 +88,12 @@ dependencies {
     compile "org.xerial:sqlite-jdbc:3.8.11.2"
     compile "org.pircbotx:pircbotx:2.1"
     compile "commons-io:commons-io:2.4"
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+	compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+	// https://mvnrepository.com/artifact/commons-validator/commons-validator
+	compile group: 'commons-validator', name: 'commons-validator', version: '1.6'
+	
+    
 }
 
 class Version {
