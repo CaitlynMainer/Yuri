@@ -290,6 +290,77 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				.build()).queue();
 	}
 
+	/** Bold text */
+	public static final String BOLD = Colors.BOLD;
+	
+	/** Underline text */
+	public static final String UNDERLINE = Colors.UNDERLINE;
+	
+	/**
+	 * Italic text 
+	 */
+	public static final String ITALIC = Colors.ITALICS;
+
+	/**
+	 * Removes all previously applied color and formatting attributes.
+	 */
+	public static final String NORMAL = Colors.NORMAL;
+	
+	private static String ircToDiscordFormatting(String message) {
+		//Replaces IRC Codes to MarkDown
+		// BOLD
+		Pattern boldPattern = Pattern.compile("(\\x02([^\\x02]*)\\x02?)");
+		Matcher boldMatcher = boldPattern.matcher(message);
+		while (boldMatcher.find()) {
+			message = message.replace(boldMatcher.group(1), "**" + boldMatcher.group(2) + "**");
+		}
+		
+		// UNDERLINE
+		Pattern underlinePattern = Pattern.compile("(\\x1F([^\\x1F]*)\\x1F?)");
+		Matcher underlineMatcher = underlinePattern.matcher(message);
+		while (underlineMatcher.find()) {
+			message = message.replace(underlineMatcher.group(1), "__" + underlineMatcher.group(2) + "__");
+		}
+
+		// ITALIC
+		Pattern italicPattern = Pattern.compile("(\\x1D([^\\x1D]*)\\x1D?)");
+		Matcher italicMatcher = italicPattern.matcher(message);
+		while (italicMatcher.find()) {
+			message = message.replace(italicMatcher.group(1), "*" + italicMatcher.group(2) + "*");
+		}
+		
+		// SPOLIER?
+		Pattern spoilerPattern = Pattern.compile("(\\x031,1([^\\x031,1]*)\\x03?)");
+		Matcher spoilerMatcher = spoilerPattern.matcher(message);
+		while (spoilerMatcher.find()) {
+			message = message.replace(spoilerMatcher.group(1), "||" + spoilerMatcher.group(2) + "||");
+		}
+
+		return message;
+	}
+
+	public static String bg(String foreground, String background) {
+		return foreground + "," + background.replace("\u0003", ""); 
+	}
+	
+	private static String discordToIRCFormatting(String message) {
+		//Replaces markdown to IRC formatting codes.
+		// BOLD: replace all occurrences of "**text**" with BOLD+"text"+RESET
+		message = message.replaceAll("\\*\\*([^\\*]*)\\*\\*", Colors.BOLD + "$1" + Colors.BOLD);
+		// UNDERLINE:
+		message = message.replaceAll("\\_\\_([^\\_\\_]*)\\_\\_", Colors.UNDERLINE + "$1" + Colors.UNDERLINE);
+
+		// ITALIC: replace all occurrences of "*text*" with ITALIC+"text"+RESET
+		message = message.replaceAll("\\*([^\\*]*)\\*", Colors.ITALICS + "$1" + Colors.ITALICS);
+
+		message = message.replaceAll("\\_([^\\_]*)\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
+
+		message = message.replaceAll("\\|\\|([^\\|\\|]*)\\|\\|", "SPOILER: " + bg(Colors.BLACK,Colors.BLACK) + "$1" + Colors.NORMAL);
+		
+		return message;
+	}
+
+
 	@SuppressWarnings("rawtypes")
 	public void parseMessage(EndPoint endPoint, GenericMessageEvent event, Boolean checkStatus) {
 		if (endPoint != null) {
@@ -301,6 +372,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			}
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
 
+			message.setMessage(ircToDiscordFormatting(message.getMessage()));
 			Pattern pattern = Pattern.compile("@[^\\s\"']+|@\"([^\"]*)\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
 			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
@@ -738,6 +810,19 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						}
 						return;
 					}
+
+
+					// Pattern for recognizing a URL, based off RFC 3986
+					Pattern urlPattern = Pattern.compile(
+							"(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
+									+ "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
+									+ "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
+									Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+					Matcher urlmatcher = urlPattern.matcher(message.getMessage());
+					if (!urlmatcher.find()) {
+						messageString = discordToIRCFormatting(message.getMessage());
+					}
+
 
 					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
 					Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
