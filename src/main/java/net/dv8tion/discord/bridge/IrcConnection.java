@@ -329,8 +329,15 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			message = message.replace(italicMatcher.group(1), "*" + italicMatcher.group(2) + "*");
 		}
 		
+		// STRIKETHROUGH
+		Pattern strikePattern = Pattern.compile("(\\0x1E([^\\0x1E]*)\\0x1E?)");
+		Matcher strikeMatcher = strikePattern.matcher(message);
+		while (strikeMatcher.find()) {
+			message = message.replace(strikeMatcher.group(1), "~~" + strikeMatcher.group(2) + "~~");
+		}
+		
 		// SPOLIER?
-		Pattern spoilerPattern = Pattern.compile("(\\x031,1([^\\x031,1]*)\\x03?)");
+		Pattern spoilerPattern = Pattern.compile("(\\x0301,01([^\\x0301,01]*)\\x03?)");
 		Matcher spoilerMatcher = spoilerPattern.matcher(message);
 		while (spoilerMatcher.find()) {
 			message = message.replace(spoilerMatcher.group(1), "||" + spoilerMatcher.group(2) + "||");
@@ -355,6 +362,8 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 
 		message = message.replaceAll("\\_([^\\_]*)\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
 
+		message = message.replaceAll("\\~\\~([^\\~\\~]*)\\~\\~", "\\0x1E$1\\0x1E");
+		
 		message = message.replaceAll("\\|\\|([^\\|\\|]*)\\|\\|", "SPOILER: " + bg(Colors.BLACK,Colors.BLACK) + "$1" + Colors.NORMAL);
 		
 		return message;
