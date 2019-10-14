@@ -330,7 +330,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 		}
 		
 		// STRIKETHROUGH
-		Pattern strikePattern = Pattern.compile("(\\0x1E([^\\0x1E]*)\\0x1E?)");
+		Pattern strikePattern = Pattern.compile("(\\x1E([^\\x1E]*)\\x1E?)");
 		Matcher strikeMatcher = strikePattern.matcher(message);
 		while (strikeMatcher.find()) {
 			message = message.replace(strikeMatcher.group(1), "~~" + strikeMatcher.group(2) + "~~");
@@ -362,7 +362,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 
 		message = message.replaceAll("\\_([^\\_]*)\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
 
-		message = message.replaceAll("\\~\\~([^\\~\\~]*)\\~\\~", "\\0x1E$1\\0x1E");
+		//message = message.replaceAll("\\~\\~([^\\~\\~]*)\\~\\~", "\\x1E$1\\x1E");
 		
 		message = message.replaceAll("\\|\\|([^\\|\\|]*)\\|\\|", "SPOILER: " + bg(Colors.BLACK,Colors.BLACK) + "$1" + Colors.NORMAL);
 		
