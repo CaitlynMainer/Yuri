@@ -64,7 +64,7 @@ public class PasteUtils {
 
             //Get Response
             BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            return new JSONObject(rd.readLine()).getString("key");
+            return pasteURL + new JSONObject(rd.readLine()).getString("key");
 
         } catch (IOException | JSONException e) {
             e.printStackTrace();
