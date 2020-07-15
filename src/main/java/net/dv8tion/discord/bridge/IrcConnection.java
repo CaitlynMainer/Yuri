@@ -381,7 +381,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			}
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
 
-			message.setMessage(ircToDiscordFormatting(message.getMessage().replace("_", "\\_")));
+			message.setMessage(ircToDiscordFormatting(message.getMessage()));
 			Pattern pattern = Pattern.compile("@[^\\s\"']+|@\"([^\"]*)\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
 			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
@@ -406,7 +406,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			}
 			message.setMessage(message.getMessage().replaceAll("@everyone"," I just tried to ping everyone. ").replaceAll("@here"," I just tried to ping everyone. "));
 			if(event instanceof ActionEvent) {
-				message.setMessage("_" + message.getMessage().replace("_", "\\_") + "_");
+				message.setMessage("_" + message.getMessage() + "_");
 			}
 			endPoint.sendMessage(message);
 		}
