@@ -15,8 +15,7 @@
  */
 package net.dv8tion.discord.commands;
 
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
@@ -45,7 +44,7 @@ public class UptimeCommand extends Command
 
         uptime = replaceLast(uptime, ", ", "");
         uptime = replaceLast(uptime, ",", " and");
-        uptime += " and my ping is " + e.getJDA().getPing() +"ms";
+
         sendMessage(e, "I've been online for:\n" + uptime);
 
     }

@@ -18,14 +18,13 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
-import net.dv8tion.jda.core.events.message.*;
+import net.dv8tion.jda.api.events.message.*;
 import net.dv8tion.discord.Yuri;
-import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.entities.Game;
-import net.dv8tion.jda.core.entities.Icon;
-import net.dv8tion.jda.core.entities.SelfUser;
-import net.dv8tion.jda.core.managers.AccountManager;
-import net.dv8tion.jda.core.managers.AccountManagerUpdatable;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Icon;
+import net.dv8tion.jda.api.entities.SelfUser;
+import net.dv8tion.jda.api.managers.AccountManager;
 
 import java.io.IOException;
 import java.net.URL;
@@ -65,7 +64,7 @@ public class SetGame extends Command
             game += " " + args[i];
         }
         game = game.trim();
-        Yuri.getAPI().getPresence().setGame(Game.playing(game));
+        Yuri.getAPI().getPresence().setActivity(Activity.playing(game));
     }
 
     @Override

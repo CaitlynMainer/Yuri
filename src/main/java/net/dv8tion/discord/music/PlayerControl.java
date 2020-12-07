@@ -14,14 +14,14 @@ import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.ChannelType;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.MessageChannel;
-import net.dv8tion.jda.core.entities.VoiceChannel;
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.core.exceptions.PermissionException;
-import net.dv8tion.jda.core.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,7 +45,7 @@ public class PlayerControl extends ListenerAdapter
 
         this.playerManager = new DefaultAudioPlayerManager();
         playerManager.registerSourceManager(new YoutubeAudioSourceManager());
-        playerManager.registerSourceManager(new SoundCloudAudioSourceManager());
+        //layerManager.registerSourceManager(new SoundCloudAudioSourceManager());
         playerManager.registerSourceManager(new BandcampAudioSourceManager());
         playerManager.registerSourceManager(new VimeoAudioSourceManager());
         playerManager.registerSourceManager(new TwitchStreamAudioSourceManager());
@@ -109,7 +109,13 @@ public class PlayerControl extends ListenerAdapter
             }
             else
             {
-                VoiceChannel chan = guild.getVoiceChannelById(command[1]);
+                VoiceChannel chan = null;
+                try
+                {
+                    chan = guild.getVoiceChannelById(command[1]);
+                }
+                catch (NumberFormatException ignored) {}
+
                 if (chan == null)
                     chan = guild.getVoiceChannelsByName(command[1], true).stream().findFirst().orElse(null);
                 if (chan == null)
@@ -310,8 +316,16 @@ public class PlayerControl extends ListenerAdapter
         }
     }
 
-    private void loadAndPlay(GuildMusicManager mng, final MessageChannel channel, final String trackUrl, final boolean addPlaylist)
+    private void loadAndPlay(GuildMusicManager mng, final MessageChannel channel, String url, final boolean addPlaylist)
     {
+        final String trackUrl;
+
+        //Strip <>'s that prevent discord from embedding link resources
+        if (url.startsWith("<") && url.endsWith(">"))
+            trackUrl = url.substring(1, url.length() - 1);
+        else
+            trackUrl = url;
+
         playerManager.loadItemOrdered(mng, trackUrl, new AudioLoadResultHandler()
         {
             @Override

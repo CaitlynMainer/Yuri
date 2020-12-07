@@ -25,12 +25,14 @@ import net.dv8tion.discord.util.CaseInsensitiveMap;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.GoogleSearch;
 import net.dv8tion.discord.util.httpd;
-import net.dv8tion.jda.core.AccountType;
-import net.dv8tion.jda.core.JDA;
-import net.dv8tion.jda.core.JDABuilder;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.exceptions.RateLimitedException;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.exceptions.RateLimitedException;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import okhttp3.OkHttpClient;
 
 import org.apache.commons.lang3.StringUtils;
@@ -70,6 +72,7 @@ public class Yuri
     public static final int NO_USERNAME_PASS_COMBO = 32;
 
     private static JDA api;
+
     private static List<IrcConnection> ircConnections;
     public static ReadWriteLock rwl;
     public static Lock wl;
@@ -133,40 +136,51 @@ public class Yuri
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-            JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT).setToken(settings.getBotToken());
+            //JDABuilder jdaBuilder = new JDABuilder(AccountType.BOT).setToken(settings.getBotToken());
+
+            JDABuilder jdaBuilder = JDABuilder.createDefault(settings.getBotToken());
+            jdaBuilder.setChunkingFilter(ChunkingFilter.ALL)
+                    .setEnableShutdownHook(true)
+                    .setMemberCachePolicy(MemberCachePolicy.ALL)
+                    .enableIntents(GatewayIntent.GUILD_MEMBERS);
+
             Database.getInstance();
             Permissions.setupPermissions();
             ircConnections = new ArrayList<IrcConnection>();
 
             HelpCommand help = new HelpCommand();
-            jdaBuilder.addEventListener(help.registerCommand(help));
+            jdaBuilder.addEventListeners(help.registerCommand(help));
             if (settings.getGoogleApiKey() != null && !settings.getGoogleApiKey().isEmpty())
             {
                 GoogleSearch.setup(settings.getGoogleApiKey());
-                jdaBuilder.addEventListener(help.registerCommand(new SearchCommand()));
-                jdaBuilder.addEventListener(help.registerCommand(new NyaaCommand()));
-                jdaBuilder.addEventListener(help.registerCommand(new MyAnimeListCommand()));
-                jdaBuilder.addEventListener(help.registerCommand(new AnimeNewsNetworkCommand()));
+                jdaBuilder.addEventListeners(
+                        help.registerCommand(new SearchCommand()),
+                        help.registerCommand(new NyaaCommand()),
+                        help.registerCommand(new MyAnimeListCommand()),
+                        help.registerCommand(new AnimeNewsNetworkCommand())
+                );
             }
             else
             {
                 System.out.println("No Google API Key provided, all search commands disabled");
             }
-            jdaBuilder.addEventListener(help.registerCommand(new ReloadCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new UpdateCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new PermissionsCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new EvalCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new RollCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new InfoCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new UptimeCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new SetAvatar()));
-            jdaBuilder.addEventListener(help.registerCommand(new SetGame()));
-            jdaBuilder.addEventListener(help.registerCommand(new RelayMoreInfo()));
-            jdaBuilder.addEventListener(help.registerCommand(new IgnoreUserCommand()));
-            jdaBuilder.addEventListener(help.registerCommand(new LeaveCommand()));
+            jdaBuilder.addEventListeners(
+                    help.registerCommand(new ReloadCommand()),
+                    help.registerCommand(new UpdateCommand()),
+                    help.registerCommand(new PermissionsCommand()),
+                    help.registerCommand(new EvalCommand()),
+                    help.registerCommand(new RollCommand()),
+                    help.registerCommand(new InfoCommand()),
+                    help.registerCommand(new UptimeCommand()),
+                    help.registerCommand(new SetAvatar()),
+                    help.registerCommand(new SetGame()),
+                    help.registerCommand(new RelayMoreInfo()),
+                    help.registerCommand(new IgnoreUserCommand()),
+                    help.registerCommand(new LeaveCommand())
+            );
             
             //Audio stuff
-            jdaBuilder.addEventListener(new PlayerControl());
+            jdaBuilder.addEventListeners(new PlayerControl());
 
             for (IrcConnectInfo info  : settings.getIrcConnectInfos())
             {
@@ -182,29 +196,27 @@ public class Yuri
                 }
                 IrcConnection irc = new IrcConnection(info);
                 ircConnections.add(irc);
-                jdaBuilder.addEventListener(irc);
+                jdaBuilder.addEventListeners(irc);
             }
 
             if (settings.getProxyHost() != null && !settings.getProxyHost().isEmpty())
             {
                 //Sets JDA's proxy settings
                 jdaBuilder.setHttpClientBuilder(new OkHttpClient.Builder().proxy(new Proxy(Type.HTTP, new InetSocketAddress(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort())))));
-                //jdaBuilder.setProxy(new HttpHost(settings.getProxyHost(), Integer.valueOf(settings.getProxyPort())));
 
                 //Sets the JVM level proxy settings.
                 System.setProperty("http.proxyHost", settings.getProxyHost());
                 System.setProperty("http.proxyPort", settings.getProxyPort());
                 System.setProperty("https.proxyHost", settings.getProxyHost());
                 System.setProperty("https.proxyPort", settings.getProxyPort());
-
             }
 
             //Login to Discord now that we are all setup.
-            api = jdaBuilder.buildBlocking();
+            api = jdaBuilder.build();
+            api.awaitReady();
             Permissions.getPermissions().setBotAsOp(api.getSelfUser());
 
             api.addEventListener(help.registerCommand(new TodoCommand(api)));
-            api.addEventListener(help.registerCommand(new KanzeTodoCommand(api)));
 
             //Creates and Stores all Discord endpoints in our Manager.
             for (Guild guild : api.getGuilds())

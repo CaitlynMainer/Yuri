@@ -29,30 +29,32 @@ import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.PasteUtils;
 import net.dv8tion.discord.util.makeTiny;
-import net.dv8tion.jda.core.MessageBuilder;
-import net.dv8tion.jda.core.Permission;
-import net.dv8tion.jda.core.entities.Guild;
-import net.dv8tion.jda.core.entities.Member;
-import net.dv8tion.jda.core.entities.Message;
-import net.dv8tion.jda.core.entities.PrivateChannel;
-import net.dv8tion.jda.core.entities.TextChannel;
-import net.dv8tion.jda.core.entities.Webhook;
-import net.dv8tion.jda.core.events.Event;
-import net.dv8tion.jda.core.events.ReadyEvent;
-import net.dv8tion.jda.core.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.core.events.guild.member.GuildMemberLeaveEvent;
-import net.dv8tion.jda.core.events.guild.member.GuildMemberNickChangeEvent;
-import net.dv8tion.jda.core.events.message.MessageUpdateEvent;
-import net.dv8tion.jda.core.events.message.guild.GenericGuildMessageEvent;
-import net.dv8tion.jda.core.events.message.guild.GuildMessageDeleteEvent;
-import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.core.events.message.guild.GuildMessageUpdateEvent;
-import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
-import net.dv8tion.jda.core.events.user.update.UserUpdateNameEvent;
-import net.dv8tion.jda.core.hooks.EventListener;
-import net.dv8tion.jda.core.managers.ChannelManager;
-import net.dv8tion.jda.webhook.WebhookMessage;
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.PrivateChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.Webhook;
+import net.dv8tion.jda.api.events.Event;
+import net.dv8tion.jda.api.events.GenericEvent;
+import net.dv8tion.jda.api.events.ReadyEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberUpdateEvent;
+import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.events.message.guild.GenericGuildMessageEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
+import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
+import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
+import net.dv8tion.jda.api.hooks.EventListener;
+import net.dv8tion.jda.api.managers.ChannelManager;
 
+import org.jetbrains.annotations.NotNull;
 import org.pircbotx.Channel;
 import org.pircbotx.Colors;
 import org.pircbotx.Configuration.Builder;
@@ -251,8 +253,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				getChans.setString(1, endPoint.toEndPointInfo().getChannelId());
 				ResultSet results = getChans.executeQuery();
 				if (results.next()) {
-					ChannelManager chanMan = new ChannelManager(Yuri.getAPI().getTextChannelById(endPoint.toEndPointInfo().getChannelId()));
-					chanMan.setTopic(event.getTopic()).queue();
+					Yuri.getAPI().getTextChannelById(endPoint.toEndPointInfo().getChannelId()).getManager().setTopic(event.getTopic()).queue();
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
@@ -292,10 +293,10 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 
 	/** Bold text */
 	public static final String BOLD = Colors.BOLD;
-	
+
 	/** Underline text */
 	public static final String UNDERLINE = Colors.UNDERLINE;
-	
+
 	/**
 	 * Italic text 
 	 */
@@ -305,7 +306,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 	 * Removes all previously applied color and formatting attributes.
 	 */
 	public static final String NORMAL = Colors.NORMAL;
-	
+
 	private static String ircToDiscordFormatting(String message) {
 		//Replaces IRC Codes to MarkDown
 		// BOLD
@@ -314,7 +315,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 		while (boldMatcher.find()) {
 			message = message.replace(boldMatcher.group(1), "**" + boldMatcher.group(2) + "**");
 		}
-		
+
 		// UNDERLINE
 		Pattern underlinePattern = Pattern.compile("(\\x1F([^\\x1F]*)\\x1F?)");
 		Matcher underlineMatcher = underlinePattern.matcher(message);
@@ -328,14 +329,14 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 		while (italicMatcher.find()) {
 			message = message.replace(italicMatcher.group(1), "*" + italicMatcher.group(2) + "*");
 		}
-		
+
 		// STRIKETHROUGH
 		Pattern strikePattern = Pattern.compile("(\\x1E([^\\x1E]*)\\x1E?)");
 		Matcher strikeMatcher = strikePattern.matcher(message);
 		while (strikeMatcher.find()) {
 			message = message.replace(strikeMatcher.group(1), "~~" + strikeMatcher.group(2) + "~~");
 		}
-		
+
 		// SPOLIER?
 		Pattern spoilerPattern = Pattern.compile("(\\x0301,01([^\\x0301,01]*)\\x03?)");
 		Matcher spoilerMatcher = spoilerPattern.matcher(message);
@@ -347,9 +348,9 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 	}
 
 	public static String bg(String foreground, String background) {
-		return foreground + "," + background.replace("\u0003", ""); 
+		return foreground + "," + background.replace("\u0003", "");
 	}
-	
+
 	private static String discordToIRCFormatting(String message) {
 		//Replaces markdown to IRC formatting codes.
 		// BOLD: replace all occurrences of "**text**" with BOLD+"text"+RESET
@@ -363,9 +364,9 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 		message = message.replaceAll("\\_([^\\_]*)\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
 
 		//message = message.replaceAll("\\~\\~([^\\~\\~]*)\\~\\~", "\\x1E$1\\x1E");
-		
+
 		message = message.replaceAll("\\|\\|([^\\|\\|]*)\\|\\|", "SPOILER: " + bg(Colors.BLACK,Colors.BLACK) + "$1" + Colors.NORMAL);
-		
+
 		return message;
 	}
 
@@ -390,9 +391,9 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				if (userToNick.containsKey(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("[\\p{Cf}]", ""))) {
 					if (checkStatus) {
 						String playing = "";
-						if (checkUser.getOnlineStatus().name().equals("ONLINE") && (checkUser.getGame() != null)) {
-							playing = " Playing: " + checkUser.getGame().getName();
-						}
+						//if (checkUser.getOnlineStatus().name().equals("ONLINE") && (checkUser.getActivities() != null)) {
+						//	playing = " Playing: " + checkUser.getActivities().;
+						//}
 						event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
 						return;
 					}
@@ -432,7 +433,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			String users = "";
 			for(String currentKey : userToNick.keySet()) {
 				if (memberToGuild.get(userToNick.get(currentKey)).getId().equals(endPoint.toEndPointInfo().getConnectorId())) {
-					users += userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";				
+					users += userToNick.get(currentKey).getUser().getName().replace("\n", "").replace("\r", "") + " | Status: " + userToNick.get(currentKey).getOnlineStatus() + "\r\n";
 				}
 			}
 			event.getBot().sendIRC().message(event.getChannel().getName(), "<Discord> Current Discord users: " + PasteUtils.paste(users));
@@ -596,25 +597,85 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 		}
 	}
 
+	public void updateNickList() {
+		if (!this.getIrcBot().isConnected()) {
+			return;
+		}
+		for (Channel channel : this.getIrcBot().getUserChannelDao().getAllChannels()) {
+			this.updateNickList(channel);
+		}
+	}
+
+	public void updateNickList(Channel channel) {
+		if (!this.getIrcBot().isConnected()) {
+			return;
+		}
+		// Build current list of names in channel
+		ArrayList<String> users = new ArrayList<>();
+		for (org.pircbotx.User user : channel.getUsers()) {
+			//plugin.logDebug("N: " + user.getNick());
+			users.add(user.getNick());
+		}
+		try {
+			Yuri.wl.tryLock(10, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException ex) {
+			return;
+		}
+		try {
+			String channelName = channel.getName();
+			Yuri.channelNicks.put(channelName, users);
+		} finally {
+			Yuri.wl.unlock();
+		}
+	}
+
+	public Channel getChannel(String channelName) {
+		Channel channel = null;
+		for (Channel c : this.getIrcBot().getUserChannelDao().getAllChannels()) {
+			if (c.getName().equalsIgnoreCase(channelName)) {
+				return c;
+			}
+		}
+		return channel;
+	}
+
+	public static String getIDFromUser(String target) {
+		String input = target.toLowerCase().replace("/", "").replace("@", "").replace("\"", "").replaceAll("\u200B", "");
+		try {
+			input = URLDecoder.decode(input, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (userToNick.containsKey(input)) {
+			Member checkUser = userToNick.get(input);
+			return checkUser.getUser().getId();
+		} else {
+			return input;
+		}
+
+	}
+
+	// -- Discord --
+
 	@Override
-	public void onEvent(Event event) {
-		Boolean abort = false;
+	public void onEvent(GenericEvent event) {		Boolean abort = false;
 		if (event instanceof MessageUpdateEvent) {
 			MessageUpdateEvent e = (MessageUpdateEvent) event;
 			if (pinnedMessages.containsValue(e.getMessage().getId())) {
 				return;
 			}
-			((MessageUpdateEvent) event).getChannel().getPinnedMessages().queue(new Consumer<List<Message>>() {
-				@Override
-				public void accept(List<Message> t) {
-					ListIterator<Message> it = t.listIterator();
-					while(it.hasNext()) {
-						Message msg = it.next();
-						pinnedMessages.put(((MessageUpdateEvent) event).getGuild(), msg.getId());
-					}
-				} 
-			}
-					);
+			((MessageUpdateEvent) event).getChannel().retrievePinnedMessages().queue(new Consumer<List<Message>>() {
+																						 @Override
+																						 public void accept(List<Message> t) {
+																							 ListIterator<Message> it = t.listIterator();
+																							 while(it.hasNext()) {
+																								 Message msg = it.next();
+																								 pinnedMessages.put(((MessageUpdateEvent) event).getGuild(), msg.getId());
+																							 }
+																						 }
+																					 }
+			);
 			if (!e.getMessage().isEdited()) {
 				return;
 			}
@@ -625,17 +686,17 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			if (pinnedMessages.containsValue(e.getMessage().getId())) {
 				return;
 			}
-			((GuildMessageUpdateEvent) event).getChannel().getPinnedMessages().queue(new Consumer<List<Message>>() {
-				@Override
-				public void accept(List<Message> t) {
-					ListIterator<Message> it = t.listIterator();
-					while(it.hasNext()) {
-						Message msg = it.next();
-						pinnedMessages.put(((GuildMessageUpdateEvent) event).getGuild(), msg.getId());
-					}
-				} 
-			}
-					);
+			((GuildMessageUpdateEvent) event).getChannel().retrievePinnedMessages().queue(new Consumer<List<Message>>() {
+																							  @Override
+																							  public void accept(List<Message> t) {
+																								  ListIterator<Message> it = t.listIterator();
+																								  while(it.hasNext()) {
+																									  Message msg = it.next();
+																									  pinnedMessages.put(((GuildMessageUpdateEvent) event).getGuild(), msg.getId());
+																								  }
+																							  }
+																						  }
+			);
 			if (!e.getMessage().isEdited()) {
 				return;
 			}
@@ -699,7 +760,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 					System.out.println(currGuild.getName());
 					System.out.println(currChan.getName());
 					if (currChan.canTalk()) {
-						currChan.getPinnedMessages().queue(new Consumer<List<Message>>() {
+						currChan.retrievePinnedMessages().queue(new Consumer<List<Message>>() {
 
 							@Override
 							public void accept(List<Message> t) {
@@ -708,7 +769,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 									Message msg = it.next();
 									pinnedMessages.put(currGuild, msg.getId());
 								}
-							} 
+							}
 						} );
 					}
 				}
@@ -726,8 +787,8 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			}
 		}
 
-		if (event instanceof GuildMemberNickChangeEvent) {
-			GuildMemberNickChangeEvent e = (GuildMemberNickChangeEvent) event;
+		if (event instanceof GuildMemberUpdateNicknameEvent) {
+			GuildMemberUpdateNicknameEvent e = (GuildMemberUpdateNicknameEvent) event;
 			Member currMember = e.getMember();
 			String userNick;
 			userNick = currMember.getEffectiveName().toLowerCase();
@@ -767,7 +828,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			return;
 		}
 		/*
-		if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") || 
+		if (msgContents.contains(" ha"+ "\u200B" +"s quit IRC ") || msgContents.contains(" ha"+ "\u200B" +"s joined ") ||
 				msgContents.contains(" ha"+ "\u200B" +"s left the channel on IRC ") || msgContents.contains(" is n"+ "\u200B" +"ow known as ") ||
 				msgContents.contains(" ha"+ "\u200B" +"s been kicked from ") ||
 				msgContents.contains("Bridge Bot available")) {
@@ -826,7 +887,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 							"(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
 									+ "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
 									+ "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
-									Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+							Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
 					Matcher urlmatcher = urlPattern.matcher(message.getMessage());
 					if (!urlmatcher.find()) {
 						messageString = discordToIRCFormatting(message.getMessage());
@@ -854,7 +915,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
 				String messageString = message.getMessage();
 				if (e.getGuild() != null && e.getGuild().getSelfMember().hasPermission(Permission.MANAGE_WEBHOOKS)) {
-					List<Webhook> webhook = e.getChannel().getWebhooks().complete(); // some webhook instance
+					List<Webhook> webhook = e.getChannel().retrieveWebhooks().complete(); // some webhook instance
 					if (webhook.size() == 0) {
 						throw new RuntimeException();
 					}
@@ -872,64 +933,5 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				endPoint.sendMessage(message);
 			}
 		}
-	}
-
-	public void updateNickList() {
-		if (!this.getIrcBot().isConnected()) {
-			return;
-		}
-		for (Channel channel : this.getIrcBot().getUserChannelDao().getAllChannels()) {
-			this.updateNickList(channel);
-		}
-	}
-
-	public void updateNickList(Channel channel) {
-		if (!this.getIrcBot().isConnected()) {
-			return;
-		}
-		// Build current list of names in channel
-		ArrayList<String> users = new ArrayList<>();
-		for (org.pircbotx.User user : channel.getUsers()) {
-			//plugin.logDebug("N: " + user.getNick());
-			users.add(user.getNick());
-		}
-		try {
-			Yuri.wl.tryLock(10, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException ex) {
-			return;
-		}
-		try {
-			String channelName = channel.getName();
-			Yuri.channelNicks.put(channelName, users);
-		} finally {
-			Yuri.wl.unlock();
-		}
-	}
-
-	public Channel getChannel(String channelName) {
-		Channel channel = null;
-		for (Channel c : this.getIrcBot().getUserChannelDao().getAllChannels()) {
-			if (c.getName().equalsIgnoreCase(channelName)) {
-				return c;
-			}
-		}
-		return channel;
-	}
-
-	public static String getIDFromUser(String target) {
-		String input = target.toLowerCase().replace("/", "").replace("@", "").replace("\"", "").replaceAll("\u200B", "");
-		try {
-			input = URLDecoder.decode(input, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		if (userToNick.containsKey(input)) {
-			Member checkUser = userToNick.get(input);
-			return checkUser.getUser().getId();
-		} else {
-			return input;
-		}
-
 	}
 }

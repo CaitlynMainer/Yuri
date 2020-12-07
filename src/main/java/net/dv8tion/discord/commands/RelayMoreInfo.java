@@ -1,7 +1,7 @@
 package net.dv8tion.discord.commands;
 
 import net.dv8tion.discord.Permissions;
-import net.dv8tion.jda.core.events.message.*;
+import net.dv8tion.jda.api.events.message.*;
 import net.dv8tion.discord.util.Database;
 
 import java.sql.PreparedStatement;

@@ -10,7 +10,7 @@ import java.util.TreeMap;
 import net.dv8tion.discord.Permissions;
 import net.dv8tion.discord.Yuri;
 import net.dv8tion.discord.util.Database;
-import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public class IgnoreUserCommand extends Command {
 	private TreeMap<String, Command> commands;
