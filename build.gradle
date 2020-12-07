@@ -20,7 +20,7 @@ jar {
     baseName = project.name
     manifest {
         attributes 'Implementation-Version': version
-        attributes 'Main-Class': 'net.dv8tion.discord.Yui'
+        attributes 'Main-Class': 'net.dv8tion.discord.Yuri'
     }
 }
 
