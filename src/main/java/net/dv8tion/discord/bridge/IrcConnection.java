@@ -407,7 +407,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			}
 			message.setMessage(message.getMessage().replaceAll("@everyone"," I just tried to ping everyone. ").replaceAll("@here"," I just tried to ping everyone. "));
 			if(event instanceof ActionEvent) {
-				String inMessage = message.getMessage().replaceAll("_","\_")
+				String inMessage = message.getMessage().replaceAll("_","\_");
 				message.setMessage("_" + inMessage + "_");
 			}
 			endPoint.sendMessage(message);
