@@ -660,7 +660,8 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 	// -- Discord --
 
 	@Override
-	public void onEvent(GenericEvent event) {		Boolean abort = false;
+	public void onEvent(GenericEvent event) {
+		Boolean abort = false;
 		if (event instanceof MessageUpdateEvent) {
 			MessageUpdateEvent e = (MessageUpdateEvent) event;
 			if (pinnedMessages.containsValue(e.getMessage().getId())) {
@@ -853,6 +854,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				String parsedMessage = "";
 				String nick;
 				String tinyURL = "";
+
 				if (!e.getMessage().getAttachments().isEmpty()) {
 					for (Message.Attachment attach : e.getMessage().getAttachments()) {
 						tinyURL = makeTiny.getTinyURL(attach.getUrl());
@@ -894,6 +896,21 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						messageString = discordToIRCFormatting(message.getMessage());
 					}
 
+
+					if (e.getMessage().getReferencedMessage() != null) {
+						String theReply = e.getMessage().getReferencedMessage().getContentRaw();
+						String preview = "";     //substring containing first 4 characters
+
+						if (theReply.length() > 30 + (AntiPing.antiPing(userNick).length() + 2))
+						{
+							preview = theReply.substring(0, 30 + (AntiPing.antiPing(userNick).length() + 2)) + "…";
+						}
+						else
+						{
+							preview = theReply;
+						}
+						messageString = ">" + preview + ": " + messageString;
+					}
 
 					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
 					Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
