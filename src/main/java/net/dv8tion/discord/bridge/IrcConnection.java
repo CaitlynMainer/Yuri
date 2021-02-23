@@ -899,7 +899,8 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 
 					if (e.getMessage().getReferencedMessage() != null) {
 						String theReply = e.getMessage().getReferencedMessage().getContentRaw();
-						String preview = "";     //substring containing first 4 characters
+						String theReplyAuthor = e.getMessage().getReferencedMessage().getAuthor().getName();
+						String preview = "";
 
 						if (theReply.length() > 30 + (AntiPing.antiPing(userNick).length() + 2))
 						{
@@ -909,7 +910,9 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						{
 							preview = theReply;
 						}
-						messageString = ">" + preview + ": " + messageString;
+						message = EndPointMessage.createFromDiscordEvent(e);
+						message.setMessage(">" + theReplyAuthor + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						endPoint.sendMessage(message);
 					}
 
 					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
