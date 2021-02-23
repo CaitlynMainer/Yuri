@@ -911,7 +911,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 							preview = theReply;
 						}
 						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(">" + theReplyAuthor + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						message.setMessage(">" + AntiPing.antiPing(theReplyAuthor) + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
 						endPoint.sendMessage(message);
 					}
 
