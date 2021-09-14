@@ -904,7 +904,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 
 						if (theReply.length() > 30 + (AntiPing.antiPing(userNick).length() + 2))
 						{
-							preview = theReply.substring(0, 30 + (AntiPing.antiPing(userNick).length() + 2)) + "…";
+							preview = theReply.substring(0, 30 + (userNick.length() + 2)) + "…";
 						}
 						else
 						{
