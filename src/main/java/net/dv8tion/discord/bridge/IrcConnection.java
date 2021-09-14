@@ -902,7 +902,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						String theReplyAuthor = e.getMessage().getReferencedMessage().getAuthor().getName();
 						String preview = "";
 
-						if (theReply.length() > 30 + (AntiPing.antiPing(userNick).length() + 2))
+						if (theReply.length() > 30 + (userNick.length() + 2))
 						{
 							preview = theReply.substring(0, 30 + (userNick.length() + 2)) + "…";
 						}
@@ -911,7 +911,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 							preview = theReply;
 						}
 						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(">" + AntiPing.antiPing(theReplyAuthor) + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						message.setMessage(">" + theReplyAuthor + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
 						endPoint.sendMessage(message);
 					}
 
