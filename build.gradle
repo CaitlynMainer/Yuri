@@ -16,6 +16,20 @@ compileJava.options.encoding = 'UTF-8'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+def filteredSourceDir = file("${buildDir}/filtered")
+
+sourceSets {
+    // This source set will contain all sources that we filter
+    filtered {
+        java {
+            srcDirs = [
+                    filteredSourceDir,
+                    "src/test/java",
+            ]
+        }
+    }
+}
+
 // copy the main sources and filter any '@buildVersion@' occurences. 
 task processVersion (type: Copy) {
     from sourceSets.main.java
