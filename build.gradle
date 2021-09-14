@@ -16,6 +16,18 @@ compileJava.options.encoding = 'UTF-8'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+// copy the main sources and filter any '@buildVersion@' occurences. 
+task processVersion (type: Copy) {
+    from sourceSets.main.java
+    into filteredSourceDir
+    filter(ReplaceTokens, tokens: [
+            versionMajor: versionObj.getMajor(),
+            versionMinor: versionObj.getMinor(),
+            versionRevision: versionObj.getRevision(),
+            versionBuild: versionObj.getBuild()
+    ])
+}
+
 jar {
     baseName = project.name
     manifest {
@@ -78,6 +90,10 @@ class Version {
         "${getMajor()}.${getMinor()}.${getRevision()}"
     }
 }
+
+// tell the compileJava task to compile the filtered source 
+compileJava.source = sourceSets.filtered.java
+compileJava.dependsOn processVersion
 
 //Creates the w/ dependencies jar.
 assemble.dependsOn shadowJar
