@@ -383,7 +383,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
 
 			message.setMessage(ircToDiscordFormatting(message.getMessage()));
-			Pattern pattern = Pattern.compile("@[^\\s\"']+|@\"([^\"]*)\"|@'([^']*)'");
+			Pattern pattern = Pattern.compile("@[^\\s\"']+(?<![.,!?;:])|@\\\"([^\"]*)\\\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
 			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
 			while (matcher.find()) {
