@@ -899,12 +899,12 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 
 					if (e.getMessage().getReferencedMessage() != null) {
 						String theReply = e.getMessage().getReferencedMessage().getContentRaw();
-						String theReplyAuthor = e.getMessage().getReferencedMessage().getAuthor().getName();
+						String theReplyAuthor = e.getMessage().getReferencedMessage().getMember().getEffectiveName();
 						String preview = "";
 
-						if (theReply.length() > 30 + (userNick.length() + 2))
+						if (theReply.length() > 65 + (userNick.length() + 2))
 						{
-							preview = theReply.substring(0, 30 + (userNick.length() + 2)) + "…";
+							preview = theReply.substring(0, 65 + (userNick.length() + 2)) + "…";
 						}
 						else
 						{
