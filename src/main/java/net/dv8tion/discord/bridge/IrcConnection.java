@@ -359,7 +359,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 		message = message.replaceAll("\\_\\_([^\\_\\_]*)\\_\\_", Colors.UNDERLINE + "$1" + Colors.UNDERLINE);
 
 		// ITALIC: replace all occurrences of "*text*" with ITALIC+"text"+RESET
-		message = message.replaceAll("\\*([^\\*]*)\\*", Colors.ITALICS + "$1" + Colors.ITALICS);
+		message = message.replaceAll("\\*([^\\s][^\\*]*[^\\s])\\*", Colors.ITALICS + "$1" + Colors.ITALICS);
 
 		message = message.replaceAll("\\_([^\\_]*)\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
 
