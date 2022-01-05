@@ -354,14 +354,14 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 	private static String discordToIRCFormatting(String message) {
 		//Replaces markdown to IRC formatting codes.
 		// BOLD: replace all occurrences of "**text**" with BOLD+"text"+RESET
-		message = message.replaceAll("\\*\\*([^\s][^\\*]*[^\s]\\*\\*", Colors.BOLD + "$1" + Colors.BOLD);
+		message = message.replaceAll("\\*\\*([^\\*]*)\\*\\*", Colors.BOLD + "$1" + Colors.BOLD);
 		// UNDERLINE:
-		message = message.replaceAll("\\_\\_([^\s][^\\_\\_]*[^\s])\\_\\_", Colors.UNDERLINE + "$1" + Colors.UNDERLINE);
+		message = message.replaceAll("\\_\\_([^\\_\\_]*)\\_\\_", Colors.UNDERLINE + "$1" + Colors.UNDERLINE);
 
 		// ITALIC: replace all occurrences of "*text*" with ITALIC+"text"+RESET
-		message = message.replaceAll("\\*([^\s][^\\*]*[^\s])\\*", Colors.ITALICS + "$1" + Colors.ITALICS);
+		message = message.replaceAll("\\*([^\\*]*)\\*", Colors.ITALICS + "$1" + Colors.ITALICS);
 
-		message = message.replaceAll("\\_([^\s][^\\_]*[^\s])\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
+		message = message.replaceAll("\\_([^\\_]*)\\_", Colors.ITALICS + "$1" + Colors.ITALICS);
 
 		//message = message.replaceAll("\\~\\~([^\\~\\~]*)\\~\\~", "\\x1E$1\\x1E");
 
