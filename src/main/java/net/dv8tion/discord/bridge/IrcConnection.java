@@ -29,6 +29,7 @@ import net.dv8tion.discord.util.AntiPing;
 import net.dv8tion.discord.util.Database;
 import net.dv8tion.discord.util.PasteUtils;
 import net.dv8tion.discord.util.makeTiny;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
@@ -82,6 +83,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -381,30 +384,37 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				chanName = ((ActionEvent) event).getChannel().getName();
 			}
 			EndPointMessage message = EndPointMessage.createFromIrcEvent(event);
-
 			message.setMessage(ircToDiscordFormatting(message.getMessage()));
+
 			Pattern pattern = Pattern.compile("@[^\\s\"']+(?<![.,!?;:])|@\\\"([^\"]*)\\\"|@'([^']*)'");
 			Matcher matcher = pattern.matcher(message.getMessage().toLowerCase().replace("@status", ""));
-			message.setMessage(Colors.removeFormattingAndColors(message.getMessage()));
-			while (matcher.find()) {
-				Member checkUser = userToNick.get(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("\u200B", ""));
-				if (userToNick.containsKey(matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("[\\p{Cf}]", ""))) {
-					if (checkStatus) {
-						String playing = "";
-						//if (checkUser.getOnlineStatus().name().equals("ONLINE") && (checkUser.getActivities() != null)) {
-						//	playing = " Playing: " + checkUser.getActivities().;
-						//}
-						event.getBot().sendIRC().message(chanName, "<Discord> " + checkUser.getEffectiveName() + " is currently " + checkUser.getOnlineStatus() + playing);
-						return;
-					}
-					message.setMessage(message.getMessage().replaceAll("(?i)"+matcher.group(0), checkUser.getAsMention()).replace("@<", "<"));
-				} else {
-					if (checkStatus) {
-						event.getBot().sendIRC().message(chanName, "<Discord> " + matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("\u200B", "") + " is not a member of this server.");
-						return;
-					}
+			matcher.find();
+			Boolean found = false;
+			Member foundMember = null;
+			for (Member m : userToNick.values()) {
+				if (message.getMessage().toLowerCase().contains("@" + m.getEffectiveName().toLowerCase())) {
+					found = true;
+					message.setMessage(message.getMessage().replace("@" + m.getEffectiveName(), m.getAsMention()));
+					foundMember = m;
+				}
+				if (message.getMessage().toLowerCase().contains("@" + m.getUser().getName().toLowerCase())) {
+					found = true;
+					message.setMessage(message.getMessage().replace("@" + m.getUser().getName(), m.getAsMention()));
+					foundMember = m;
 				}
 			}
+
+			if (checkStatus) {
+				System.out.println("Was found? " + found);
+				if (found) {
+					event.getBot().sendIRC().message(chanName, "<Discord> " + foundMember.getEffectiveName() + " is currently " + foundMember.getOnlineStatus());
+				} else {
+					event.getBot().sendIRC().message(chanName, "<Discord> " + matcher.group(0).toLowerCase().replace("@", "").replace("\"", "").replaceAll("\u200B", "") + " is not a member of this server.");
+				}
+				found = false;
+				return;
+			}
+
 			message.setMessage(message.getMessage().replaceAll("@everyone"," I just tried to ping everyone. ").replaceAll("@here"," I just tried to ping everyone. "));
 			if(event instanceof ActionEvent) {
 				String inMessage = message.getMessage().replaceAll("_","\\\\_");
@@ -754,7 +764,12 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				for (Member currMember : currGuild.getMembers()) {
 					String userNick;
 					userNick = currMember.getEffectiveName().toLowerCase();
-					userToNick.put(userNick, currMember);
+
+					ByteBuffer buffer = StandardCharsets.UTF_8.encode(userNick);
+
+					String utf8EncodedString = StandardCharsets.UTF_8.decode(buffer).toString();
+
+					userToNick.put(utf8EncodedString, currMember);
 					memberToGuild.put(currMember, currGuild);
 					System.out.println("Adding user: " + userNick + " | " + currMember.getUser().getName() + " | " + currGuild.getName());
 				}

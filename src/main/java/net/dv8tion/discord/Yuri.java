@@ -142,7 +142,9 @@ public class Yuri
             jdaBuilder.setChunkingFilter(ChunkingFilter.ALL)
                     .setEnableShutdownHook(true)
                     .setMemberCachePolicy(MemberCachePolicy.ALL)
-                    .enableIntents(GatewayIntent.GUILD_MEMBERS);
+                    .enableIntents(GatewayIntent.GUILD_MEMBERS)
+                    .enableIntents(GatewayIntent.GUILD_PRESENCES)
+                    .enableIntents(GatewayIntent.GUILD_MESSAGES);
 
             Database.getInstance();
             Permissions.setupPermissions();
