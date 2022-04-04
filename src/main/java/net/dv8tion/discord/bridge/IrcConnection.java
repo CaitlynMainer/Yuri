@@ -899,23 +899,6 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						return;
 					}
 
-					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
-					Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-					Matcher matcher = pattern.matcher(messageString);
-					while (matcher.find()) {
-						if (matcher.group(1).contains("\n"))
-							messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
-					}
-					if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
-						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
-						endPoint.sendAction(message);
-					} else {
-						message = EndPointMessage.createFromDiscordEvent(e);
-						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
-						endPoint.sendMessage(message);
-					}
-
 					if (e.getMessage().getReferencedMessage() != null) {
 						String theReply = e.getMessage().getReferencedMessage().getContentRaw();
 						String theReplyAuthor = e.getMessage().getReferencedMessage().getMember() != null ? e.getMessage().getReferencedMessage().getMember().getEffectiveName() : e.getMessage().getReferencedMessage().getAuthor().getName();
@@ -933,6 +916,25 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						message.setMessage(">" + theReplyAuthor + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
 						endPoint.sendMessage(message);
 					}
+
+					final String regex = "``?`?.*?\\n?((?:.|\\n)*?)\\n?``?`?";
+					Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+					Matcher matcher = pattern.matcher(messageString);
+					while (matcher.find()) {
+						if (matcher.group(1).contains("\n"))
+							messageString = messageString.replace(matcher.group(0), "Code Block pastebined "+PasteUtils.paste(matcher.group(1), PasteUtils.Formats.NONE));
+					}
+					if (message.getMessage().startsWith("_") && message.getMessage().endsWith("_")) {
+						message = EndPointMessage.createFromDiscordEvent(e);
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						endPoint.sendAction(message);
+					} else {
+						message = EndPointMessage.createFromDiscordEvent(e);
+						message.setMessage(messageString.replaceAll("(?m)^[ \t]*\r?\n", ""));
+						endPoint.sendMessage(message);
+					}
+
+
 
 					// Pattern for recognizing a URL, based off RFC 3986
 					Pattern urlPattern = Pattern.compile(
