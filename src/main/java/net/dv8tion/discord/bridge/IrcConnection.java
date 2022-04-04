@@ -916,18 +916,6 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						endPoint.sendMessage(message);
 					}
 
-					// Pattern for recognizing a URL, based off RFC 3986
-					Pattern urlPattern = Pattern.compile(
-							"(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
-									+ "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
-									+ "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
-							Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-					Matcher urlmatcher = urlPattern.matcher(message.getMessage());
-					if (!urlmatcher.find()) {
-						messageString = discordToIRCFormatting(message.getMessage());
-					}
-
-
 					if (e.getMessage().getReferencedMessage() != null) {
 						String theReply = e.getMessage().getReferencedMessage().getContentRaw();
 						String theReplyAuthor = e.getMessage().getReferencedMessage().getMember() != null ? e.getMessage().getReferencedMessage().getMember().getEffectiveName() : e.getMessage().getReferencedMessage().getAuthor().getName();
@@ -944,6 +932,17 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						message = EndPointMessage.createFromDiscordEvent(e);
 						message.setMessage(">" + theReplyAuthor + ": " + preview.replaceAll("(?m)^[ \t]*\r?\n", ""));
 						endPoint.sendMessage(message);
+					}
+
+					// Pattern for recognizing a URL, based off RFC 3986
+					Pattern urlPattern = Pattern.compile(
+							"(?:^|[\\W])((ht|f)tp(s?):\\/\\/|www\\.)"
+									+ "(([\\w\\-]+\\.){1,}?([\\w\\-.~]+\\/?)*"
+									+ "[\\p{Alnum}.,%_=?&#\\-+()\\[\\]\\*$~@!:/{};']*)",
+							Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+					Matcher urlmatcher = urlPattern.matcher(message.getMessage());
+					if (!urlmatcher.find()) {
+						messageString = discordToIRCFormatting(message.getMessage());
 					}
 				}
 			} else if (e.getMessage().isWebhookMessage()) {
