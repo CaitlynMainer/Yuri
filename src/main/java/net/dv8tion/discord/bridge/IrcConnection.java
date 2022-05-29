@@ -692,7 +692,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				return;
 			}
 		}
-
+/*
 		if (event instanceof GuildMessageUpdateEvent) {
 			GuildMessageUpdateEvent e = (GuildMessageUpdateEvent) event;
 			if (pinnedMessages.containsValue(e.getMessage().getId())) {
@@ -747,7 +747,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				}
 			}
 		}
-
+*/
 		if (event instanceof PrivateMessageReceivedEvent) {
 			PrivateMessageReceivedEvent e = (PrivateMessageReceivedEvent) event;
 			if (event.getJDA().getSelfUser().getId().equals(e.getAuthor().getId()))
