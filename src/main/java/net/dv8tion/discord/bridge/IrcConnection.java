@@ -875,7 +875,7 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 						//tinyURL = makeTiny.getTinyURL(attach.getUrl());
 						parsedMessage += "<" + AntiPing.antiPing(userNick) + "> " + addSpace(removeUrl(message.getMessage())) + attach.getUrl();
 					}
-					parsedMessage.replace(tinyURL, "");
+					//parsedMessage.replace(tinyURL, "");
 					endPoint.sendMessage(parsedMessage.toString());
 				} else {
 
