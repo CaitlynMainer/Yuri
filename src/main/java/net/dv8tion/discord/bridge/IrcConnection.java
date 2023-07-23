@@ -868,12 +868,12 @@ public class IrcConnection extends ListenerAdapter implements EventListener
 				EndPointMessage message = EndPointMessage.createFromDiscordEvent(e);
 				String parsedMessage = "";
 				String nick;
-				String tinyURL = "";
+				//String tinyURL = "";
 
 				if (!e.getMessage().getAttachments().isEmpty()) {
 					for (Message.Attachment attach : e.getMessage().getAttachments()) {
-						tinyURL = makeTiny.getTinyURL(attach.getUrl());
-						parsedMessage += "<" + AntiPing.antiPing(userNick) + "> " + addSpace(removeUrl(message.getMessage())) + tinyURL;
+						//tinyURL = makeTiny.getTinyURL(attach.getUrl());
+						parsedMessage += "<" + AntiPing.antiPing(userNick) + "> " + addSpace(removeUrl(message.getMessage())) + attach.getUrl();
 					}
 					parsedMessage.replace(tinyURL, "");
 					endPoint.sendMessage(parsedMessage.toString());
