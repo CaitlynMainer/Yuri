@@ -18,6 +18,8 @@ const mime = require('mime-types');
 const config = JSON.parse(fs.readFileSync('config.json'));
 const { exec } = require('child_process');
 
+
+const webhookCache = {}; // Create a cache object to store webhooks
 const ircConfig = config.irc;
 const discordToken = config.discord.token;
 let channelMappings = config.channelMappings;
@@ -172,11 +174,9 @@ ircClient.on('message', async (event) => {
         const showMoreInfo = mappedChannel.showMoreInfo;
         const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
         // Regular user message, send it to Discord
-        const webhooks = discordChannel.fetchWebhooks();
-        webhooks.then(webhookCollection => {
-            const yuriWebhook = webhookCollection.find(webhook => webhook.name === config.webHookName);
-            sendMessageToDiscord(yuriWebhook, sender, ircMessage)
-        });
+        const yuriWebhook = await getWebhook(discordChannel);
+        sendMessageToDiscord(yuriWebhook, sender, ircMessage)
+
     } else {
         //console.error(`No mapped Discord channel found for IRC channel: ${event.target}`);
     }
@@ -212,15 +212,12 @@ ircClient.on('join', async (event) => {
         const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
         console.log(event.channel, mappedDiscordChannelID, showMoreInfo);
         // Regular user message, send it to Discord
-        const webhooks = discordChannel.fetchWebhooks();
-        webhooks.then(webhookCollection => {
-            const yuriWebhook = webhookCollection.find(webhook => webhook.name === config.webHookName);
-            sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${event.nick} Joined ${event.channel} On IRC`)
-        });
+        const yuriWebhook = await getWebhook(discordChannel);
+        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${event.nick} Joined ${event.channel} On IRC`)
     }
 });
 // Part event handler
-ircClient.on('part', (event) => {
+ircClient.on('part', async (event) => {
     if (event.nick === ircConfig.nick) {
         return;
     }
@@ -240,11 +237,8 @@ ircClient.on('part', (event) => {
         const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
 
         // Regular user message, send it to Discord
-        const webhooks = discordChannel.fetchWebhooks();
-        webhooks.then(webhookCollection => {
-            const yuriWebhook = webhookCollection.find(webhook => webhook.name === config.webHookName);
-            sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has left ${ircChannel} (${event.message || 'No reason provided'})`);
-        });
+        const yuriWebhook = await getWebhook(discordChannel);
+        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has left ${ircChannel} (${event.message || 'No reason provided'})`);
     }
 });
 
@@ -266,12 +260,8 @@ ircClient.on('quit', async (event) => {
                 const mappedDiscordChannelID = mappedChannel.discordChannelID;
                 const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
                 
-                const webhooks = await discordChannel.fetchWebhooks();
-                const yuriWebhook = webhooks.find(webhook => webhook.name === config.webHookName);
-                
-                if (yuriWebhook) {
-                    sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has quit IRC (${quitMessage}) in ${channel}`);
-                }
+                const yuriWebhook = await getWebhook(discordChannel);
+                sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has quit IRC (${quitMessage}) in ${channel}`);
             }
         }
     });
@@ -295,11 +285,8 @@ ircClient.on('nick', async (event) => {
                 const mappedDiscordChannelID = mappedChannel.discordChannelID;
                 const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
                 // Regular user message, send it to Discord
-                const webhooks = await discordChannel.fetchWebhooks();
-                const yuriWebhook = webhooks.find(webhook => webhook.name === config.webHookName);
-                if(yuriWebhook) {
-                    sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${oldNick} is now known as ${newNick}`);
-                }
+                const yuriWebhook = await getWebhook(discordChannel);
+                sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${oldNick} is now known as ${newNick}`);
             }
         }
     });
@@ -330,9 +317,7 @@ discordClient.on('messageCreate', async (message) => {
         // Check if the message is from a webhook
         if(message.webhookId) {
             // Fetch webhooks from the channel
-            const webhooks = await message.channel.fetchWebhooks();
-            // Find the yuri webhook by name
-            const yuriWebhook = webhooks.find(webhook => webhook.name === config.webHookName);
+            const yuriWebhook = await getWebhook(discordChannel);
             if(yuriWebhook && message.webhookId === yuriWebhook.id) {
                 // If it's from the yuri webhook, do not relay back to IRC
                 //console.log('Message from yuri webhook, not relaying to IRC.');
@@ -501,6 +486,24 @@ discordClient.on('messageCreate', async (message) => {
 });
 
 //Function defs below.
+
+// Function to get or fetch a webhook for a channel
+async function getWebhook(discordChannel) {
+    const channelId = discordChannel.id;
+    if (webhookCache[channelId]) {
+        // If webhook is already in cache for the channel, return it
+        return webhookCache[channelId];
+    } else {
+        // If not in cache, fetch and store in cache
+        const webhooks = await discordChannel.fetchWebhooks();
+        const matchingWebhook = webhooks.find(webhook => webhook.name === config.webHookName);
+        if (matchingWebhook) {
+            webhookCache[channelId] = matchingWebhook;
+            return matchingWebhook;
+        }
+    }
+}
+
 function antiPing(senderNickname) {
     // Find the middle index of the senderNickname
     const middleIndex = Math.floor(senderNickname.length / 2);
