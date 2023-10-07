@@ -28,7 +28,7 @@ app.use((req, res, next) => {
 // Web server to serve saved Discord embeds locally
 const savedEmbedsPath = path.join(__dirname, 'saved_embeds');
 app.use('/saved_embeds', express.static(savedEmbedsPath));
-server.listen(3000, () => {
+server.listen(config.webPort, () => {
     console.log('Web server running on port 3000');
 });
 // Function to add allowed Discord users dynamically
@@ -198,7 +198,7 @@ ircClient.on('message', async (event) => {
                         webhookClient.destroy(); // Destroy the client after sending the message
                     })
                     .catch(error => {
-                        //console.error(`Error sending message via webhook to Discord channel ${mappedDiscordChannelID}:`, error);
+                        console.error(`Error sending message via webhook to Discord channel ${mappedDiscordChannelID}:`, error);
                         webhookClient.destroy(); // Destroy the client in case of an error
                     });
             } else {
@@ -208,7 +208,7 @@ ircClient.on('message', async (event) => {
                         //console.log(`Message sent successfully to Discord channel ${mappedDiscordChannelID}`);
                     })
                     .catch(error => {
-                        //console.error(`Error sending message to Discord channel ${mappedDiscordChannelID}:`, error);
+                        console.error(`Error sending message to Discord channel ${mappedDiscordChannelID}:`, error);
                     });
             }
         });
