@@ -150,16 +150,19 @@ ircClient.on('message', async (event) => {
     const ircMentionRegex = /@(\w+)/g;
     const discordMentions = [];
     // Find all IRC mentions in the message and convert them to Discord mentions
-    ircMessage.replace(ircMentionRegex, (match, username) => {
+    ircMessage = ircMessage.replace(ircMentionRegex, (match, username) => {
         const discordUser = discordClient.users.cache.find(user => user.username.toLowerCase() === username.toLowerCase());
         if(discordUser) {
             // Convert IRC mention to Discord mention format
             discordMentions.push(`<@${discordUser.id}>`);
         }
+        // Replace IRC-style mentions with empty string to remove them from the message
+        return '';
     });
-    // Replace IRC-style mentions with Discord mentions in the message
-    discordMentions.forEach((mention) => {
-        ircMessage = ircMessage.replace(/@(\w+)/, mention);
+
+    // Add Discord mentions back to the message
+    discordMentions.forEach(mention => {
+        ircMessage += ` ${mention}`;
     });
     const mappedChannel = channelMappings[event.target];
     if(mappedChannel) {
