@@ -340,92 +340,113 @@ discordClient.on('messageCreate', async (message) => {
             }
         }
         if(discordMessage.startsWith('!adduser')) {
-            // Command to add allowed Discord user
-            const [, userId] = discordMessage.split(' ');
-            addAllowedDiscordUser(userId);
-            message.channel.send(`User ${userId} has been added to the allowed users list.`);
+            if(config.discord.allowedUsers.includes(message.author.id)) {
+                // Command to add allowed Discord user
+                const [, userId] = discordMessage.split(' ');
+                addAllowedDiscordUser(userId);
+                message.channel.send(`User ${userId} has been added to the allowed users list.`);
+            } else {
+                message.channel.send(`Permission denied`);
+            }
+
             return;
         }
         if(discordMessage.startsWith('!deluser')) {
             // Command to remove allowed Discord user
-            const [, userId] = discordMessage.split(' ');
-            if(config.discord.allowedUsers.includes(userId)) {
-                config.discord.allowedUsers = config.discord.allowedUsers.filter(user => user !== userId);
-                saveConfig();
-                message.channel.send(`User ${userId} has been removed from the allowed users list.`);
+            if(config.discord.allowedUsers.includes(message.author.id)) {
+                const [, userId] = discordMessage.split(' ');
+                if(config.discord.allowedUsers.includes(userId)) {
+                    config.discord.allowedUsers = config.discord.allowedUsers.filter(user => user !== userId);
+                    saveConfig();
+                    message.channel.send(`User ${userId} has been removed from the allowed users list.`);
+                } else {
+                    message.channel.send(`User ${userId} is not in the allowed users list.`);
+                }
             } else {
-                message.channel.send(`User ${userId} is not in the allowed users list.`);
+                message.channel.send(`Permission denied`);
             }
             return;
         }
         // Discord command handler
         if(discordMessage.startsWith('!link')) {
-            const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = discordMessage.split(' ');
-            // Update channel mapping in config
-            config.channelMappings[ircChannel] = {
-                "discordChannelID": discordChannelID,
-                "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
-            };
-            ircClient.join(ircChannel)
-            // Save updated mappings to config.json
-            saveConfig();
-            message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`);
+            if(config.discord.allowedUsers.includes(message.author.id)) {
+                const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = discordMessage.split(' ');
+                // Update channel mapping in config
+                config.channelMappings[ircChannel] = {
+                    "discordChannelID": discordChannelID,
+                    "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
+                };
+                ircClient.join(ircChannel)
+                // Save updated mappings to config.json
+                saveConfig();
+                message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`);
+            } else {
+                message.channel.send(`Permission denied`);
+            }
+
             return;
         }
         //!update
         if (message.content.startsWith('!update')) {
-            // Run git pull command
-            exec('git pull', (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Error during git pull: ${error.message}`);
-                    return;
-                }
-        
-                // Check if there were any changes pulled
-                if (stdout.includes('Already up to date.')) {
-                    exec('git rev-parse HEAD', (error, stdout, stderr) => {
-                        if (!error) {
-                            const commitHash = stdout.trim();
-                            message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
-                        } else {
-                            console.error(`Error getting commit hash: ${error.message}`);
-                        }
-                    });
-                } else {
-                    message.channel.send('Bot has been updated. Relaunching...');
-                    // Relaunch the bot
-                    process.exit(0);
-                }
-            });
+            if(config.discord.allowedUsers.includes(message.author.id)) { 
+                // Run git pull command
+                exec('git pull', (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error during git pull: ${error.message}`);
+                        return;
+                    }
+            
+                    // Check if there were any changes pulled
+                    if (stdout.includes('Already up to date.')) {
+                        exec('git rev-parse HEAD', (error, stdout, stderr) => {
+                            if (!error) {
+                                const commitHash = stdout.trim();
+                                message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
+                            } else {
+                                console.error(`Error getting commit hash: ${error.message}`);
+                            }
+                        });
+                    } else {
+                        message.channel.send('Bot has been updated. Relaunching...');
+                        // Relaunch the bot
+                        process.exit(0);
+                    }
+                });
+            } else {
+                message.channel.send(`Permission denied`);
+            }
         }
 
         // Discord command handler
         if (discordMessage.startsWith('!showmoreinfo')) {
-            const [, showMoreInfoArg] = discordMessage.split(' ');
+            if(config.discord.allowedUsers.includes(message.author.id)) {
+                const [, showMoreInfoArg] = discordMessage.split(' ');
 
-            if (showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
-                const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
-                const discordChannelID = message.channel.id;
+                if (showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
+                    const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
+                    const discordChannelID = message.channel.id;
 
-                // Find the IRC channel ID based on the current Discord channel
-                const ircChannel = Object.keys(config.channelMappings).find(ircChannel => {
-                    return config.channelMappings[ircChannel].discordChannelID === discordChannelID;
-                });
+                    // Find the IRC channel ID based on the current Discord channel
+                    const ircChannel = Object.keys(config.channelMappings).find(ircChannel => {
+                        return config.channelMappings[ircChannel].discordChannelID === discordChannelID;
+                    });
 
-                if (ircChannel) {
-                    // Update showMoreInfo property for the IRC channel
-                    config.channelMappings[ircChannel].showMoreInfo = showMoreInfo;
+                    if (ircChannel) {
+                        // Update showMoreInfo property for the IRC channel
+                        config.channelMappings[ircChannel].showMoreInfo = showMoreInfo;
 
-                    // Save updated mappings to config.json
-                    saveConfig();
-                    message.channel.send(`Set showMoreInfo to ${showMoreInfo}`);
+                        // Save updated mappings to config.json
+                        saveConfig();
+                        message.channel.send(`Set showMoreInfo to ${showMoreInfo}`);
+                    } else {
+                        message.channel.send("Error: Unable to find the corresponding IRC channel for the current Discord channel.");
+                    }
                 } else {
-                    message.channel.send("Error: Unable to find the corresponding IRC channel for the current Discord channel.");
+                    message.channel.send("Invalid argument. Please use `true` or `false` after the command.");
                 }
             } else {
-                message.channel.send("Invalid argument. Please use `true` or `false` after the command.");
+                message.channel.send(`Permission denied`);
             }
-
             return;
         }
 
