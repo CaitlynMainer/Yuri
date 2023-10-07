@@ -1,0 +1,22 @@
+{
+    "discord": {
+      "token": "BotToken",
+      "allowedUsers": ["DiscordUserID1", "DiscordUserID2"]
+    },
+    "irc": {
+      "server": "irc.network.net",
+      "port": 6667,
+      "nick": "BotNick",
+      "identNick": "BotNick",
+      "identPass": "BotNSPassword",
+      "registeredUsers": ["IRCAdmin1", "IRCAdmin2"]
+    },
+    "webHookName": "Corded",
+    "webHookAvatar": "http://127.0.0.1:3000/avatar?nick=%IRCUSERNAME%",
+    "embedSite": "http://127.0.0.1:3000/",
+    "channelMappings": {
+        "#YourIRCChan": "YourDiscordChanID",
+        "#YourIRCChan2": "YourDiscordChanID2",
+    }
+  }
+  
