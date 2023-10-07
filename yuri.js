@@ -373,17 +373,24 @@ discordClient.on('messageCreate', async (message) => {
             return;
         }
         //!update
-        if(discordMessage.startsWith('!update')) {
+        if (message.content.startsWith('!update')) {
             // Run git pull command
             exec('git pull', (error, stdout, stderr) => {
                 if (error) {
                     console.error(`Error during git pull: ${error.message}`);
                     return;
                 }
-
+        
                 // Check if there were any changes pulled
                 if (stdout.includes('Already up to date.')) {
-                    message.channel.send('Bot is already up to date.');
+                    exec('git rev-parse HEAD', (error, stdout, stderr) => {
+                        if (!error) {
+                            const commitHash = stdout.trim();
+                            message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
+                        } else {
+                            console.error(`Error getting commit hash: ${error.message}`);
+                        }
+                    });
                 } else {
                     message.channel.send('Bot has been updated. Relaunching...');
                     // Relaunch the bot
