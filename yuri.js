@@ -16,6 +16,8 @@ const axios = require('axios');
 const url = require('url');
 const mime = require('mime-types');
 const config = JSON.parse(fs.readFileSync('config.json'));
+const { exec } = require('child_process');
+
 const ircConfig = config.irc;
 const discordToken = config.discord.token;
 let channelMappings = config.channelMappings;
@@ -369,6 +371,25 @@ discordClient.on('messageCreate', async (message) => {
             saveConfig();
             message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`);
             return;
+        }
+        //!update
+        if(discordMessage.startsWith('!update')) {
+            // Run git pull command
+            exec('git pull', (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Error during git pull: ${error.message}`);
+                    return;
+                }
+
+                // Check if there were any changes pulled
+                if (stdout.includes('Already up to date.')) {
+                    message.channel.send('Bot is already up to date.');
+                } else {
+                    message.channel.send('Bot has been updated. Relaunching...');
+                    // Relaunch the bot
+                    process.exit(0);
+                }
+            });
         }
 
         // Discord command handler
