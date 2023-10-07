@@ -317,7 +317,7 @@ discordClient.on('messageCreate', async (message) => {
         // Check if the message is from a webhook
         if(message.webhookId) {
             // Fetch webhooks from the channel
-            const yuriWebhook = await getWebhook(discordChannel);
+            const yuriWebhook = await getWebhook(message.channel);
             if(yuriWebhook && message.webhookId === yuriWebhook.id) {
                 // If it's from the yuri webhook, do not relay back to IRC
                 //console.log('Message from yuri webhook, not relaying to IRC.');
