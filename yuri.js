@@ -304,7 +304,7 @@ discordClient.on('messageCreate', async (message) => {
         let senderNickname = message.member ? message.member.nickname : null;
         // If the sender doesn't have a server nickname, use their account nickname
         if(!senderNickname) {
-            senderNickname = message.author.username;
+            senderNickname = message.member.user.globalName;
         }
         // If the sender doesn't have an account nickname, use their account name
         if(!senderNickname) {
