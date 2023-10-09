@@ -75,17 +75,25 @@ ircClient.on('registered', () => {
     // Identify with NickServ after connecting to the IRC server
     ircClient.say('NickServ', `IDENTIFY ${ircConfig.identNick} ${ircConfig.identPass}`);
     // Auto-join IRC channels based on keys in channelMappings
+    const tempChannelMappings = {};
+
     Object.keys(channelMappings).forEach(ircChannel => {
-        console.log(`Joining: ${ircChannel.toLowerCase()}`)
+        const lowercaseKey = ircChannel.toLowerCase();
+        tempChannelMappings[lowercaseKey] = channelMappings[ircChannel];
+        console.log(`Joining: ${lowercaseKey}`);
         ircClient.join(ircChannel);
     });
+    
+    // Copy modified data back to the original channelMappings object
+    Object.assign(channelMappings, tempChannelMappings);
+    console.log(channelMappings);
     console.log('Connected to IRC server, identified with NickServ, and joined specified channels.');
 });
-ircClient.on('message', async (event) => {
+ircClient.on('message', async (event) => {    
     let ircMessage = removeColorCodes(event.message);
     ircMessage = ircToDiscordMarkdown(ircMessage);
     const sender = event.nick;
-    const channelMappings = config.channelMappings; // Ensure channelMappings is accessible here
+    //const channelMappings = config.channelMappings; // Ensure channelMappings is accessible here
     //console.log('Received IRC Event:', event); // Log the entire event object
     if(ircMessage.startsWith('!adduser')) {
         // Command to add registered IRC user
@@ -165,7 +173,8 @@ ircClient.on('message', async (event) => {
     // Add Discord mentions back to the message
     discordMentions.forEach(mention => {
         ircMessage += ` ${mention}`;
-    });
+    }); 
+    //console.log(event.target.toLowerCase());
     const mappedChannel = channelMappings[event.target.toLowerCase()];
     if(mappedChannel) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
@@ -175,7 +184,7 @@ ircClient.on('message', async (event) => {
         const yuriWebhook = await getWebhook(discordChannel);
         sendMessageToDiscord(yuriWebhook, sender, ircMessage)
     } else {
-        console.error(`No mapped Discord channel found for IRC channel: ${event.target}`);
+        //console.error(`No mapped Discord channel found for IRC channel: ${event.target.toLowerCase()}`);
     }
 });
 ircClient.on('wholist', (event) => {
@@ -343,7 +352,7 @@ discordClient.on('messageCreate', async (message) => {
             if(config.discord.allowedUsers.includes(message.author.id)) {
                 const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = discordMessage.split(' ');
                 // Update channel mapping in config
-                config.channelMappings[ircChannel.toLowerCase()] = {
+                channelMappings[ircChannel.toLowerCase()] = {
                     "discordChannelID": discordChannelID,
                     "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
                 };
@@ -393,12 +402,12 @@ discordClient.on('messageCreate', async (message) => {
                     const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
                     const discordChannelID = message.channel.id;
                     // Find the IRC channel ID based on the current Discord channel
-                    const ircChannel = Object.keys(config.channelMappings).find(ircChannel => {
+                    const ircChannel = Object.keys(channelMappings).find(ircChannel => {
                         return config.channelMappings[ircChannel.toLowerCase()].discordChannelID === discordChannelID;
                     });
                     if(ircChannel) {
                         // Update showMoreInfo property for the IRC channel
-                        config.channelMappings[ircChannel.toLowerCase()].showMoreInfo = showMoreInfo;
+                        channelMappings[ircChannel.toLowerCase()].showMoreInfo = showMoreInfo;
                         // Save updated mappings to config.json
                         saveConfig();
                         message.channel.send(`Set showMoreInfo to ${showMoreInfo}`);
