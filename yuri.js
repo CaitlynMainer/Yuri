@@ -16,9 +16,9 @@ const axios = require('axios');
 const url = require('url');
 const mime = require('mime-types');
 const config = JSON.parse(fs.readFileSync('config.json'));
-const { exec } = require('child_process');
-
-
+const {
+    exec
+} = require('child_process');
 const webhookCache = {}; // Create a cache object to store webhooks
 const ircConfig = config.irc;
 const discordToken = config.discord.token;
@@ -36,7 +36,6 @@ app.use('/saved_embeds', express.static(savedEmbedsPath));
 server.listen(config.webPort, () => {
     console.log('Web server running on port 3000');
 });
-
 const ircClient = new irc.Client();
 ircClient.connect({
     host: ircConfig.server,
@@ -77,7 +76,7 @@ ircClient.on('registered', () => {
     ircClient.say('NickServ', `IDENTIFY ${ircConfig.identNick} ${ircConfig.identPass}`);
     // Auto-join IRC channels based on keys in channelMappings
     Object.keys(channelMappings).forEach(ircChannel => {
-        console.log(`Joining: ${ircChannel}`)
+        console.log(`Joining: ${ircChannel.toLowerCase()}`)
         ircClient.join(ircChannel);
     });
     console.log('Connected to IRC server, identified with NickServ, and joined specified channels.');
@@ -112,7 +111,7 @@ ircClient.on('message', async (event) => {
         // Command to link channels from IRC
         const [, discordChannelID, ircChannel] = ircMessage.split(' ');
         // Update channel mapping in config.json
-        channelMappings[discordChannelID] = ircChannel;
+        channelMappings[discordChannelID] = ircChannel.toLowerCase();
         saveConfig(); // Save config after updating channelMappings
         //ircClient.say(event.target, `Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel}`);
         return;
@@ -163,12 +162,11 @@ ircClient.on('message', async (event) => {
         // Replace IRC-style mentions with empty string to remove them from the message
         return '';
     });
-
     // Add Discord mentions back to the message
     discordMentions.forEach(mention => {
         ircMessage += ` ${mention}`;
     });
-    const mappedChannel = channelMappings[event.target];
+    const mappedChannel = channelMappings[event.target.toLowerCase()];
     if(mappedChannel) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
         const showMoreInfo = mappedChannel.showMoreInfo;
@@ -176,12 +174,10 @@ ircClient.on('message', async (event) => {
         // Regular user message, send it to Discord
         const yuriWebhook = await getWebhook(discordChannel);
         sendMessageToDiscord(yuriWebhook, sender, ircMessage)
-
     } else {
-        //console.error(`No mapped Discord channel found for IRC channel: ${event.target}`);
+        console.error(`No mapped Discord channel found for IRC channel: ${event.target}`);
     }
 });
-
 ircClient.on('wholist', (event) => {
     if(!ircUserChannelMapping[event.target]) {
         ircUserChannelMapping[event.target] = [];
@@ -200,12 +196,12 @@ ircClient.on('join', async (event) => {
     // Update the ircUserChannelMapping for the user's join event
     const ircChannel = event.channel;
     const ircUser = event.nick;
-    if(!ircUserChannelMapping[ircChannel]) {
-        ircUserChannelMapping[ircChannel].push(ircUser);
+    if(!ircUserChannelMapping[ircChannel.toLowerCase()]) {
+        ircUserChannelMapping[ircChannel.toLowerCase()].push(ircUser);
     }
     ircUserChannelMapping[ircChannel].push(ircUser);
     console.log(event);
-    const mappedChannel = channelMappings[event.channel];
+    const mappedChannel = channelMappings[event.channel].toLowerCase();
     if(mappedChannel && mappedChannel.showMoreInfo) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
         const showMoreInfo = mappedChannel.showMoreInfo;
@@ -218,55 +214,47 @@ ircClient.on('join', async (event) => {
 });
 // Part event handler
 ircClient.on('part', async (event) => {
-    if (event.nick === ircConfig.nick) {
+    if(event.nick === ircConfig.nick) {
         return;
     }
     const ircChannel = event.channel;
     const ircUser = event.nick;
-
     // Check if the user is in the channel
-    if (ircUserChannelMapping[ircChannel] && ircUserChannelMapping[ircChannel].includes(ircUser)) {
+    if(ircUserChannelMapping[ircChannel] && ircUserChannelMapping[ircChannel].includes(ircUser)) {
         // Remove the user from the channel in ircUserChannelMapping
         ircUserChannelMapping[ircChannel] = ircUserChannelMapping[ircChannel].filter(user => user !== ircUser);
     }
-
     // Handle Discord relay logic here if needed
-    const mappedChannel = channelMappings[ircChannel];
-    if (mappedChannel && mappedChannel.showMoreInfo) {
+    const mappedChannel = channelMappings[ircChannel.toLowerCase()];
+    if(mappedChannel && mappedChannel.showMoreInfo) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
         const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
-
         // Regular user message, send it to Discord
         const yuriWebhook = await getWebhook(discordChannel);
         sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has left ${ircChannel} (${event.message || 'No reason provided'})`);
     }
 });
-
 // Quit event handler
 ircClient.on('quit', async (event) => {
     const ircUser = event.nick;
     const quitMessage = event.message || 'No reason provided';
-
     // Iterate through all mapped channels
     Object.keys(ircUserChannelMapping).forEach(async channel => {
         // Check if the quitting user is in the current channel
-        if (ircUserChannelMapping[channel].includes(ircUser)) {
+        if(ircUserChannelMapping[channel].includes(ircUser)) {
             // Remove the user from the channel
             ircUserChannelMapping[channel] = ircUserChannelMapping[channel].filter(user => user !== ircUser);
-
             // Handle Discord relay logic here if needed
-            const mappedChannel = channelMappings[channel];
-            if (mappedChannel && mappedChannel.showMoreInfo) {
+            const mappedChannel = channelMappings[channel.toLowerCase()];
+            if(mappedChannel && mappedChannel.showMoreInfo) {
                 const mappedDiscordChannelID = mappedChannel.discordChannelID;
                 const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
-                
                 const yuriWebhook = await getWebhook(discordChannel);
                 sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has quit IRC (${quitMessage}) in ${channel}`);
             }
         }
     });
 });
-
 // Nick change event handler
 ircClient.on('nick', async (event) => {
     const oldNick = event.nick;
@@ -280,7 +268,7 @@ ircClient.on('nick', async (event) => {
                 user === oldNick ? newNick : user
             );
             // Process the channel as required (send message to Discord, etc.)
-            const mappedChannel = channelMappings[channel];
+            const mappedChannel = channelMappings[channel.toLowerCase()];
             if(mappedChannel && mappedChannel.showMoreInfo) {
                 const mappedDiscordChannelID = mappedChannel.discordChannelID;
                 const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
@@ -291,29 +279,14 @@ ircClient.on('nick', async (event) => {
         }
     });
 });
-
 //We got a discord messagem, so we need to make it look pretty in IRC.
 discordClient.on('messageCreate', async (message) => {
     const mappedIRCChannel = Object.keys(channelMappings).find(
-        (key) => channelMappings[key]?.discordChannelID === message.channel.id
+        (key) => channelMappings[key.toLowerCase()]?.discordChannelID === message.channel.id
     );
     if(mappedIRCChannel) {
         let discordMessage = discordMarkdownToIRC(message.cleanContent);
         const sender = message.author.username;
-        // Get the sender's nickname on the server
-        let senderNickname = message.member ? message.member.nickname : null;
-        // If the sender doesn't have a server nickname, use their account nickname
-        if(!senderNickname) {
-            senderNickname = message.author.username;
-        }
-        // If the sender doesn't have an account nickname, use their account name
-        if(!senderNickname) {
-            senderNickname = message.author.tag;
-        }
-        // Ignore messages sent by the bot itself
-        if(message.author.id === discordClient.user.id) {
-            return;
-        }
         // Check if the message is from a webhook
         if(message.webhookId) {
             // Fetch webhooks from the channel
@@ -324,6 +297,20 @@ discordClient.on('messageCreate', async (message) => {
                 return;
             }
         }
+        // Get the sender's nickname on the server
+        let senderNickname = message.member ? message.member.nickname : null;
+        // If the sender doesn't have a server nickname, use their account nickname
+        if(!senderNickname) {
+            senderNickname = message.member.user.globalName;
+        }
+        // If the sender doesn't have an account nickname, use their account name
+        if(!senderNickname) {
+            senderNickname = message.author.tag;
+        }
+        // Ignore messages sent by the bot itself
+        if(message.author.id === discordClient.user.id) {
+            return;
+        }
         if(discordMessage.startsWith('!adduser')) {
             if(config.discord.allowedUsers.includes(message.author.id)) {
                 // Command to add allowed Discord user
@@ -333,7 +320,6 @@ discordClient.on('messageCreate', async (message) => {
             } else {
                 message.channel.send(`Permission denied`);
             }
-
             return;
         }
         if(discordMessage.startsWith('!deluser')) {
@@ -357,7 +343,7 @@ discordClient.on('messageCreate', async (message) => {
             if(config.discord.allowedUsers.includes(message.author.id)) {
                 const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = discordMessage.split(' ');
                 // Update channel mapping in config
-                config.channelMappings[ircChannel] = {
+                config.channelMappings[ircChannel.toLowerCase()] = {
                     "discordChannelID": discordChannelID,
                     "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
                 };
@@ -368,23 +354,21 @@ discordClient.on('messageCreate', async (message) => {
             } else {
                 message.channel.send(`Permission denied`);
             }
-
             return;
         }
         //!update
-        if (message.content.startsWith('!update')) {
-            if(config.discord.allowedUsers.includes(message.author.id)) { 
+        if(message.content.startsWith('!update')) {
+            if(config.discord.allowedUsers.includes(message.author.id)) {
                 // Run git pull command
                 exec('git pull', (error, stdout, stderr) => {
-                    if (error) {
+                    if(error) {
                         console.error(`Error during git pull: ${error.message}`);
                         return;
                     }
-            
                     // Check if there were any changes pulled
-                    if (stdout.includes('Already up to date.')) {
+                    if(stdout.includes('Already up to date.')) {
                         exec('git rev-parse HEAD', (error, stdout, stderr) => {
-                            if (!error) {
+                            if(!error) {
                                 const commitHash = stdout.trim();
                                 message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
                             } else {
@@ -401,25 +385,20 @@ discordClient.on('messageCreate', async (message) => {
                 message.channel.send(`Permission denied`);
             }
         }
-
         // Discord command handler
-        if (discordMessage.startsWith('!showmoreinfo')) {
+        if(discordMessage.startsWith('!showmoreinfo')) {
             if(config.discord.allowedUsers.includes(message.author.id)) {
                 const [, showMoreInfoArg] = discordMessage.split(' ');
-
-                if (showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
+                if(showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
                     const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
                     const discordChannelID = message.channel.id;
-
                     // Find the IRC channel ID based on the current Discord channel
                     const ircChannel = Object.keys(config.channelMappings).find(ircChannel => {
-                        return config.channelMappings[ircChannel].discordChannelID === discordChannelID;
+                        return config.channelMappings[ircChannel.toLowerCase()].discordChannelID === discordChannelID;
                     });
-
-                    if (ircChannel) {
+                    if(ircChannel) {
                         // Update showMoreInfo property for the IRC channel
-                        config.channelMappings[ircChannel].showMoreInfo = showMoreInfo;
-
+                        config.channelMappings[ircChannel.toLowerCase()].showMoreInfo = showMoreInfo;
                         // Save updated mappings to config.json
                         saveConfig();
                         message.channel.send(`Set showMoreInfo to ${showMoreInfo}`);
@@ -434,7 +413,6 @@ discordClient.on('messageCreate', async (message) => {
             }
             return;
         }
-
         const isCodeBlock = /^```[\s\S]*```$/.test(discordMessage);
         const hasMoreThan3NewLines = discordMessage.split('\n').length > 3;
         if(isCodeBlock || hasMoreThan3NewLines) {
@@ -484,20 +462,18 @@ discordClient.on('messageCreate', async (message) => {
         ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${discordMessage}`);
     }
 });
-
 //Function defs below.
-
 // Function to get or fetch a webhook for a channel
 async function getWebhook(discordChannel) {
     const channelId = discordChannel.id;
-    if (webhookCache[channelId]) {
+    if(webhookCache[channelId]) {
         // If webhook is already in cache for the channel, return it
         return webhookCache[channelId];
     } else {
         // If not in cache, fetch and store in cache
         const webhooks = await discordChannel.fetchWebhooks();
         const matchingWebhook = webhooks.find(webhook => webhook.name === config.webHookName);
-        if (matchingWebhook) {
+        if(matchingWebhook) {
             webhookCache[channelId] = matchingWebhook;
             return matchingWebhook;
         }
@@ -507,7 +483,6 @@ async function getWebhook(discordChannel) {
 function antiPing(senderNickname) {
     // Find the middle index of the senderNickname
     const middleIndex = Math.floor(senderNickname.length / 2);
-
     // Insert Zero-Width Space character at the middle index
     return senderNickname.slice(0, middleIndex) + '\u200B' + senderNickname.slice(middleIndex);
 }
