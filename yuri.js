@@ -468,7 +468,7 @@ discordClient.on('messageCreate', async (message) => {
                 }
             }
         }
-        const lines = inputString.split('\n');
+        const lines = discordMessage.split('\n');
         lines.forEach(line => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
         });
