@@ -468,7 +468,7 @@ discordClient.on('messageCreate', async (message) => {
                 }
             }
         }
-        const lines = discordMessage.split('\n');
+        const lines = inputString.split('\n');
         lines.forEach(line => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
         });
@@ -637,11 +637,11 @@ async function downloadAndSaveFile(url, saveDirectory) {
         // Generate a unique filename (e.g., using timestamp)
         const timestamp = Date.now();
         const fileExtension = url.split('.').pop();
-        const savedFilePath = `${timestamp}.${fileExtension}`;
+        const savedFilePath = `${saveDirectory}/${timestamp}.${fileExtension}`;
         // Save the file to the specified directory
         const writer = fs.createWriteStream(savedFilePath);
         response.data.pipe(writer);
-        return savedFilePath; // Return the path to the saved file
+        return `${timestamp}.${fileExtension}`; // Return the path to the saved file
     } catch (error) {
         console.error('Error downloading and saving file:', error);
         return null; // Return null if there's an error
