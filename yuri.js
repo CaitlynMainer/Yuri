@@ -468,23 +468,10 @@ discordClient.on('messageCreate', async (message) => {
                 }
             }
         }
-        const lines = inputString.split('\n');
-        // Check if the input string contains newline characters using regular expression
-        const newlineRegex = /\n/;
-
-        if (newlineRegex.test(inputString)) {
-            // Split the input string into an array of lines using '\n' as the delimiter
-            const lines = inputString.split('\n');
-
-            // Loop over the lines using forEach method
-            lines.forEach(line => {
-                // Do something with each line, for example, log it to the console
-                ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
-            });
-        } else {
-            // Handle the case where the input string does not contain newlines
-            ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${inputString}`);
-        }
+        const lines = discordMessage.split('\n');
+        lines.forEach(line => {
+            ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
+        });
     }
 });
 //Function defs below.
