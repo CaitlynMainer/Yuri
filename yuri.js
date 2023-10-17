@@ -65,7 +65,7 @@ discordClient.on('ready', async () => {
             // Fetch members for the current guild and populate the cache
             await guild.members.fetch();
             // Access members from the cache
-            const members = guild.members.cache.map(member => member.id);
+            const members = (await guild.members.fetch()).map(member => member.id);
         } catch (error) {
             console.error(`Error fetching members for guild ${guild.name}:`, error);
         }
@@ -159,21 +159,26 @@ ircClient.on('message', async (event) => {
     }
     // Regular expression to match IRC mentions
     const ircMentionRegex = /@(\w+)/g;
-    const discordMentions = [];
-    // Find all IRC mentions in the message and convert them to Discord mentions
+
+    // Replace IRC mentions with corresponding Discord mentions in the message
     ircMessage = ircMessage.replace(ircMentionRegex, (match, username) => {
-        const discordUser = discordClient.users.cache.find(user => user.username.toLowerCase() === username.toLowerCase());
-        if(discordUser) {
+        const discordUser = discordClient.users.cache.find(user => {
+            const normalizedUsername = username.toLowerCase();
+            return (
+                user.username.toLowerCase() === normalizedUsername || // Match by account name
+                (user.nickname && user.nickname.toLowerCase() === normalizedUsername) || // Match by server nickname
+                (user.globalName && user.globalName.toLowerCase() === normalizedUsername) || // Match by server nickname
+                user.tag.toLowerCase() === `${normalizedUsername}#${user.discriminator}` // Match by account nickname
+            );
+        });
+
+        if (discordUser) {
             // Convert IRC mention to Discord mention format
-            discordMentions.push(`<@${discordUser.id}>`);
+            return `<@${discordUser.id}>`; // Replace IRC mention with Discord mention in the message
         }
-        // Replace IRC-style mentions with empty string to remove them from the message
-        return '';
+
+        return match; // If no corresponding Discord user found, keep the original mention in the message
     });
-    // Add Discord mentions back to the message
-    discordMentions.forEach(mention => {
-        ircMessage += ` ${mention}`;
-    }); 
     //console.log(event.target.toLowerCase());
     const mappedChannel = channelMappings[event.target.toLowerCase()];
     if(mappedChannel) {
@@ -294,6 +299,7 @@ discordClient.on('messageCreate', async (message) => {
         (key) => channelMappings[key.toLowerCase()]?.discordChannelID === message.channel.id
     );
     if(mappedIRCChannel) {
+
         let discordMessage = discordMarkdownToIRC(message.cleanContent);
         const sender = message.author.username;
         // Check if the message is from a webhook
