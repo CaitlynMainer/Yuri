@@ -215,7 +215,7 @@ ircClient.on('join', async (event) => {
     }
     ircUserChannelMapping[ircChannel].push(ircUser);
     console.log(event);
-    const mappedChannel = channelMappings[event.channel].toLowerCase();
+    const mappedChannel = channelMappings[event.channel.toLowerCase()];
     if(mappedChannel && mappedChannel.showMoreInfo) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
         const showMoreInfo = mappedChannel.showMoreInfo;
