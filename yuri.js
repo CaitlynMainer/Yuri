@@ -3,7 +3,8 @@ const irc = require('irc-framework');
 const {
     Client,
     GatewayIntentBits,
-    WebhookClient
+    WebhookClient,
+    MessageType
 } = require('discord.js');
 const express = require('express');
 const app = express();
@@ -34,7 +35,7 @@ app.use((req, res, next) => {
 const savedEmbedsPath = path.join(__dirname, 'saved_embeds');
 app.use('/saved_embeds', express.static(savedEmbedsPath));
 server.listen(config.webPort, () => {
-    console.log('Web server running on port 3000');
+    console.log(`Web server running on port ${config.webPort}`);
 });
 const ircClient = new irc.Client();
 ircClient.connect({
@@ -115,15 +116,6 @@ ircClient.on('message', async (event) => {
         }
         return;
     }
-    if(ircMessage.startsWith('!link')) {
-        // Command to link channels from IRC
-        const [, discordChannelID, ircChannel] = ircMessage.split(' ');
-        // Update channel mapping in config.json
-        channelMappings[discordChannelID] = ircChannel.toLowerCase();
-        saveConfig(); // Save config after updating channelMappings
-        //ircClient.say(event.target, `Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel}`);
-        return;
-    }
     if(ircMessage.startsWith('!setmyavatar')) {
         const [, avatarUrl] = ircMessage.split(' ');
         //console.log("Setting avatar to", avatarUrl);
@@ -157,11 +149,110 @@ ircClient.on('message', async (event) => {
             ircClient.say(event.target, 'Error downloading or saving the avatar');
         }
     }
+    // IRC command handler
+    if(ircMessage.startsWith('!link')) {
+        if(config.irc.registeredUsers.includes(sender)) {
+            const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = ircMessage.split(' ');
+            // Update channel mapping in config
+            channelMappings[ircChannel.toLowerCase()] = {
+                "discordChannelID": discordChannelID,
+                "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
+            };
+            ircClient.join(ircChannel)
+            // Save updated mappings to config.json
+            saveConfig();
+            ircClient.say(event.target, `Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`);
+        } else {
+            ircClient.say(event.target, `Permission denied`);
+        }
+        return;
+    }
+    if (ircMessage.startsWith('!unlink')) {
+        if (config.irc.registeredUsers.includes(sender)) {
+            const [, ircChannel] = ircMessage.split(' ');
+    
+            // Check if the channel exists in the config
+            if (channelMappings.hasOwnProperty(ircChannel.toLowerCase())) {
+                // Remove channel mapping from config
+                delete channelMappings[ircChannel.toLowerCase()];
+                ircClient.part(ircChannel); // Leave the IRC channel
+                // Save updated mappings to config.json
+                saveConfig();
+                ircClient.say(event.target, `Unlinked IRC channel ${ircChannel}`);
+            } else {
+                ircClient.say(event.target, `No mapping found for IRC channel ${ircChannel}`);
+            }
+        } else {
+            ircClient.say(event.target, `Permission denied`);
+        }
+        return;
+    }
+    
+    //!update
+    if(ircMessage.startsWith('!update')) {
+        if(config.irc.registeredUsers.includes(sender)) {
+            // Run git pull command
+            exec('git pull', (error, stdout, stderr) => {
+                if(error) {
+                    console.error(`Error during git pull: ${error.message}`);
+                    return;
+                }
+                // Check if there were any changes pulled
+                if(stdout.includes('Already up to date.')) {
+                    exec('git rev-parse HEAD', (error, stdout, stderr) => {
+                        if(!error) {
+                            const commitHash = stdout.trim();
+                            ircClient.say(event.target, `Bot is already up to date (Commit: ${commitHash}).`);
+                        } else {
+                            console.error(`Error getting commit hash: ${error.message}`);
+                        }
+                    });
+                } else {
+                    ircClient.say(event.target, 'Bot has been updated. Relaunching...');
+                    // Relaunch the bot
+                    process.exit(0);
+                }
+            });
+        } else {
+            ircClient.say(event.target, `Permission denied`);
+        }
+    }
+    // Discord command handler
+    if(ircMessage.startsWith('!showmoreinfo')) {
+        if(config.irc.registeredUsers.includes(sender)) {
+            const [, showMoreInfoArg] = ircMessage.split(' ');
+            if(showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
+                const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
+                const discordChannelID = message.channel.id;
+                // Find the IRC channel ID based on the current Discord channel
+                const ircChannel = Object.keys(channelMappings).find(ircChannel => {
+                    return config.channelMappings[ircChannel.toLowerCase()].discordChannelID === discordChannelID;
+                });
+                if(ircChannel) {
+                    // Update showMoreInfo property for the IRC channel
+                    channelMappings[ircChannel.toLowerCase()].showMoreInfo = showMoreInfo;
+                    // Save updated mappings to config.json
+                    saveConfig();
+                    ircClient.say(event.target, `Set showMoreInfo to ${showMoreInfo}`);
+                } else {
+                    ircClient.say(event.target, "Error: Unable to find the corresponding IRC channel for the current Discord channel.");
+                }
+            } else {
+                ircClient.say(event.target, "Invalid argument. Please use `true` or `false` after the command.");
+            }
+        } else {
+            ircClient.say(event.target, `Permission denied`);
+        }
+        return;
+    }
     // Regular expression to match IRC mentions
     const ircMentionRegex = /@(\w+)/g;
 
     // Replace IRC mentions with corresponding Discord mentions in the message
     ircMessage = ircMessage.replace(ircMentionRegex, (match, username) => {
+        //if (username == "everyone" || username == "here") {
+        //    return "I tried to ping everyone / here";
+        //}
         const discordUser = discordClient.users.cache.find(user => {
             const normalizedUsername = username.toLowerCase();
             return (
@@ -474,6 +565,13 @@ discordClient.on('messageCreate', async (message) => {
                 }
             }
         }
+        //console.log(`Message Type: ${message.type}`)
+        if (message.type === MessageType.Reply) {
+            const msg1 = await message.fetchReference();
+            msg1 = truncateString(discordMarkdownToIRC(msg1.cleanContent), 60);
+            //console.log(msg1.author.displayName, msg1.content);
+            ircClient.say(mappedIRCChannel, `> <${antiPing(msg1.author.displayName)}> ${msg1.content}`);
+        }
         const lines = discordMessage.split('\n');
         lines.forEach(line => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
@@ -533,6 +631,10 @@ function sendMessageToDiscord(webook, sender, ircMessage) {
                 username: sender,
                 avatarURL: config.webHookAvatar.replace("%IRCUSERNAME%", sender) + "&" + (Math.floor(Math.random() * (max - min + 1)) + min),
                 content: ircMessage,
+                allowed_mentions: {
+                  "parse": ["users", "roles"],
+                  "users": []
+                },
             })
             .then(() => {
                 //console.log(`Message sent successfully via webhook to Discord channel ${mappedDiscordChannelID}`);
@@ -679,4 +781,13 @@ function ircToDiscordMarkdown(message) {
     };
     const ircFormattingRegex = /\x02|\x1F|\x1D|\x03(?:\d{1,2}(?:,\d{1,2})?)?/g;
     return message.replace(ircFormattingRegex, match => ircToDiscord[match]);
+}
+
+function truncateString(str, maxLength) {
+    if (str.length <= maxLength) {
+        return str;
+    } else {
+        // Truncate the string and append Unicode character U+2026 (…)
+        return str.slice(0, maxLength - 1) + '…';
+    }
 }
