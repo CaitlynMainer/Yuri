@@ -568,9 +568,9 @@ discordClient.on('messageCreate', async (message) => {
         //console.log(`Message Type: ${message.type}`)
         if (message.type === MessageType.Reply) {
             const msg1 = await message.fetchReference();
-            msg1 = truncateString(discordMarkdownToIRC(msg1.cleanContent), 60);
+            var originalMessage = truncateString(discordMarkdownToIRC(msg1.cleanContent), 60);
             //console.log(msg1.author.displayName, msg1.content);
-            ircClient.say(mappedIRCChannel, `> <${antiPing(msg1.author.displayName)}> ${msg1}`);
+            ircClient.say(mappedIRCChannel, `> <${antiPing(msg1.author.displayName)}> ${originalMessage}`);
         }
         const lines = discordMessage.split('\n');
         lines.forEach(line => {
