@@ -626,15 +626,18 @@ function sendMessageToDiscord(webook, sender, ircMessage) {
         });
         const min = 100000; // Minimum value (inclusive)
         const max = 999999; // Maximum value (inclusive)
+        const allowed_mentions = {
+            parse: ['users', 'roles'],
+            users: true,
+            roles: true,
+            everyone: false // Prevents @everyone and @here mentions
+        };
         // Send the message using the webhook client with custom username and avatar
         webhookClient.send({
                 username: sender,
                 avatarURL: config.webHookAvatar.replace("%IRCUSERNAME%", sender) + "&" + (Math.floor(Math.random() * (max - min + 1)) + min),
                 content: ircMessage,
-                allowed_mentions: {
-                  "parse": ["users", "roles"],
-                  "users": []
-                },
+                allowed_mentions: allowed_mentions
             })
             .then(() => {
                 //console.log(`Message sent successfully via webhook to Discord channel ${mappedDiscordChannelID}`);
