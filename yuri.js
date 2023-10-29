@@ -20,11 +20,13 @@ const config = JSON.parse(fs.readFileSync('config.json'));
 const {
     exec
 } = require('child_process');
+const glob = require('glob');
 const webhookCache = {}; // Create a cache object to store webhooks
 const ircConfig = config.irc;
 const discordToken = config.discord.token;
 let channelMappings = config.channelMappings;
 const ircUserChannelMapping = {}; // Initialize an empty mapping for users and their channels
+
 app.use((req, res, next) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

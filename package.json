@@ -9,6 +9,7 @@
         "discord.js": "^14.13.0",
         "express": "^4.17.1",
         "fs": "^0.0.1-security",
+        "glob": "^10.3.10",
         "gm": "^1.25.0",
         "http": "0.0.1-security",
         "imagemagick": "^0.1.3",
