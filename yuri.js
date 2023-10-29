@@ -90,6 +90,8 @@ ircClient.on('registered', () => {
     console.log(channelMappings);
     console.log('Connected to IRC server, identified with NickServ, and joined specified channels.');
 });
+
+
 ircClient.on('message', async (event) => {    
     let ircMessage = removeColorCodes(event.message);
     ircMessage = ircToDiscordMarkdown(ircMessage);
@@ -118,8 +120,16 @@ ircClient.on('message', async (event) => {
     }
     if(ircMessage.startsWith('!setmyavatar')) {
         const [, avatarUrl] = ircMessage.split(' ');
-        //console.log("Setting avatar to", avatarUrl);
         const nick = sender;
+        const avatarFileName = `${nick}.*`;
+        const avatarPath = path.join(__dirname, 'avatars');
+        const matchingFiles = glob.sync(path.join(avatarPath, avatarFileName));
+    
+        // Delete existing avatar files matching the nickname
+        matchingFiles.forEach(file => {
+            fs.unlinkSync(file);
+            console.log(`Deleted existing avatar file: ${file}`);
+        });
         try {
             // Validate if the remote URL is an image
             // console.log('Fetching avatar metadata...');
@@ -384,6 +394,66 @@ ircClient.on('nick', async (event) => {
         }
     });
 });
+
+// discordClient.on('raw', packet => {
+//     // 'packet' contains the raw data from the WebSocket connection
+//     // You can parse and handle different events here
+//     if (!packet.t) return; // Ignore heartbeats and other non-event packets
+//     const eventName = packet.t;
+//     const eventData = packet.d;
+  
+//     // Log the event name and data
+//     console.log(`Received event: ${eventName}`);
+//     console.log('Event data:', eventData);
+//   });
+
+//We got a discord edit.. fml
+discordClient.on('messageUpdate', async (oldMessage, newMessage) => {
+    const oldMessageContent = oldMessage.content;
+    const newMessageContent = newMessage.content;
+
+    console.log("oldMessageContent" ,oldMessage.content)
+    console.log("newMessageContent" ,newMessage.content)
+
+    const mappedIRCChannel = Object.keys(channelMappings).find(
+        (key) => channelMappings[key.toLowerCase()]?.discordChannelID === oldMessage.channel.id
+    );
+    if(mappedIRCChannel) {
+
+        if(oldMessage.webhookId) {
+            // Fetch webhooks from the channel
+            const yuriWebhook = await getWebhook(oldMessage.channel);
+            if(yuriWebhook && oldMessage.webhookId === yuriWebhook.id) {
+                // If it's from the yuri webhook, do not relay back to IRC
+                //console.log('Message from yuri webhook, not relaying to IRC.');
+                return;
+            }
+        }
+        // Get the sender's nickname on the server
+        let senderNickname = oldMessage.member ? oldMessage.member.nickname : null;
+        // If the sender doesn't have a server nickname, use their account nickname
+        if(!senderNickname) {
+            senderNickname = oldMessage.member.user.globalName;
+        }
+        // If the sender doesn't have an account nickname, use their account name
+        if(!senderNickname) {
+            senderNickname = oldMessage.author.tag;
+        }
+        // Ignore messages sent by the bot itself
+        if(oldMessage.author.id === discordClient.user.id) {
+            return;
+        }
+
+        var theDiff = lineDiff(oldMessageContent, newMessageContent);
+
+        if (theDiff !== null) {
+            //ircClient.say('#channel', theDiff); // Replace '#channel' with the appropriate IRC channel
+            
+            ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${theDiff}`);
+        }
+    }
+ })
+
 //We got a discord messagem, so we need to make it look pretty in IRC.
 discordClient.on('messageCreate', async (message) => {
     const mappedIRCChannel = Object.keys(channelMappings).find(
@@ -682,10 +752,12 @@ function discordMarkdownToIRC(message) {
 }
 app.get('/avatar', (req, res) => {
     const nick = req.query.nick;
-    const image_path = path.join(__dirname, `avatars/${nick}.png`); // Create an absolute path
-    if(fs.existsSync(image_path)) {
-        // Serve the existing image to the browser
-        res.sendFile(image_path);
+    const image_path = path.join(__dirname, `avatars/${nick}.*`); // Use wildcard character for file extension
+    const matchingFiles = glob.sync(image_path); // Use glob to find matching files
+
+    if (matchingFiles.length > 0) {
+        // Serve the first matching image to the browser
+        res.sendFile(matchingFiles[0]);
     } else if(nick && /^[a-zA-Z0-9]+$/.test(nick)) {
         // Generate a new avatar
         const color = stringToColorCode(nick);
@@ -792,3 +864,48 @@ function truncateString(str, maxLength) {
         return str.slice(0, maxLength - 1) + '…';
     }
 }
+
+function lineDiff(oldMessage, newMessage) {
+    const a = oldMessage.split(' ');
+    const b = newMessage.split(' ');
+
+    let pre = null;
+    let post = null;
+    const mlen = Math.min(a.length, b.length);
+
+    for (let i = 0; i < mlen; i++) {
+        if (a[i] !== b[i]) {
+            break;
+        }
+
+        pre = i + 1;
+    }
+
+    for (let i = 0; i < mlen; i++) {
+        if (a[a.length - 1 - i] !== b[b.length - 1 - i]) {
+            post = -i - 1;
+            break;
+        }
+    }
+
+    const rem = a.slice(pre);
+    const add = b.slice(pre);
+
+    if (add.length === 0 && rem.length > 0) {
+        return "-" + rem.join(' ');
+    }
+
+    if (rem.length === 0 && add.length > 0) {
+        return "+" + add.join(' ');
+    }
+
+    if (add.length > 0) {
+        return "* " + add.join(' ');
+    }
+
+    return null;
+}
+
+
+
+
