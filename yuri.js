@@ -754,14 +754,20 @@ function discordMarkdownToIRC(message) {
 }
 app.get('/avatar', (req, res) => {
     const nick = req.query.nick;
-    const image_path = path.join(__dirname, `avatars/${nick}.*`); // Use wildcard character for file extension
+    const image_path = path.join(__dirname, `avatars/${nick}.png`); // Assuming PNG format
     const matchingFiles = glob.sync(image_path); // Use glob to find matching files
+
+    console.log('Requested Nick:', nick);
+    console.log('Image Path:', image_path);
 
     if (matchingFiles.length > 0) {
         // Serve the first matching image to the browser
+        console.log('Serving Existing Image:', matchingFiles[0]);
         res.sendFile(matchingFiles[0]);
-    } else if(nick && /^[a-zA-Z0-9]+$/.test(nick)) {
+    } else if (nick && /^[a-zA-Z0-9]+$/.test(nick)) {
         // Generate a new avatar
+        console.log('Generating New Avatar for:', nick);
+
         const color = stringToColorCode(nick);
         const textColor = readableColor(color) === 'FFFFFF' ? '#FFFFFF' : '#000000';
         im.convert(
@@ -776,19 +782,22 @@ app.get('/avatar', (req, res) => {
                 image_path
             ],
             function(err) {
-                if(err) {
-                    console.error(err);
+                if (err) {
+                    console.error('Image Generation Error:', err);
                     res.status(500).send('Internal Server Error');
                 } else {
                     // Serve the newly generated image to the browser
+                    console.log('New Avatar Generated Successfully:', image_path);
                     res.sendFile(image_path);
                 }
             }
         );
     } else {
+        console.log('Invalid Input:', nick);
         res.status(400).send('Invalid input');
     }
 });
+
 
 function readableColor(bg) {
     const r = parseInt(bg.substr(1, 2), 16);
