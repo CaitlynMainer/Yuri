@@ -621,7 +621,7 @@ discordClient.on('messageCreate', async (message) => {
                 const newAttachmentURL = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
                 //console.log('Modified Attachment URL:', newAttachmentURL);
                 try {
-                    const newFilePath = await downloadAndSaveFile(newAttachmentURL, 'saved_embeds');
+                    const newFilePath = await downloadAndSaveFile(attachmentURL, 'saved_embeds');
                     if(newFilePath) {
                         //console.log('File downloaded and saved:', newFilePath);
                         // Construct the new URL based on your server configuration
@@ -818,22 +818,30 @@ function padToSixDigits(code) {
     }
     return '#' + code;
 }
-async function downloadAndSaveFile(url, saveDirectory) {
+
+async function downloadAndSaveFile(urlIn, saveDirectory) {
     try {
-        // Fetch the file content using axios
+        // Parse the URL to separate the path and query string
+        const parsedUrl = url.parse(urlIn, true);
+        const cleanUrl = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
+
+        // Fetch the file content using axios with the original URL
         const response = await axios({
             method: 'get',
-            url: url,
+            url: urlIn,
             responseType: 'stream'
         });
+
         // Generate a unique filename (e.g., using timestamp)
         const timestamp = Date.now();
-        const fileExtension = url.split('.').pop();
+        const fileExtension = cleanUrl.split('.').pop();
         const savedFilePath = `${saveDirectory}/${timestamp}.${fileExtension}`;
+
         // Save the file to the specified directory
         const writer = fs.createWriteStream(savedFilePath);
         response.data.pipe(writer);
-        return `${timestamp}.${fileExtension}`; // Return the path to the saved file
+
+        return `${timestamp}.${fileExtension}`; // Return the path to the saved file without the query string
     } catch (error) {
         console.error('Error downloading and saving file:', error);
         return null; // Return null if there's an error
