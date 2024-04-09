@@ -257,33 +257,45 @@ ircClient.on('message', async (event) => {
         }
         return;
     }
+    const mappedChannel = channelMappings[event.target.toLowerCase()];
     // Regular expression to match IRC mentions
     const ircMentionRegex = /@(\w+)/g;
-
+    
     // Replace IRC mentions with corresponding Discord mentions in the message
     ircMessage = ircMessage.replace(ircMentionRegex, (match, username) => {
-        //if (username == "everyone" || username == "here") {
-        //    return "I tried to ping everyone / here";
-        //}
-        const discordUser = discordClient.users.cache.find(user => {
-            const normalizedUsername = username.toLowerCase();
-            return (
-                user.username.toLowerCase() === normalizedUsername || // Match by account name
-                (user.nickname && user.nickname.toLowerCase() === normalizedUsername) || // Match by server nickname
-                (user.globalName && user.globalName.toLowerCase() === normalizedUsername) || // Match by server nickname
-                user.tag.toLowerCase() === `${normalizedUsername}#${user.discriminator}` // Match by account nickname
-            );
-        });
-
-        if (discordUser) {
-            // Convert IRC mention to Discord mention format
-            return `<@${discordUser.id}>`; // Replace IRC mention with Discord mention in the message
+        // Get the channel from the channel ID
+        const channel = discordClient.channels.cache.get(mappedChannel.discordChannelID);
+    
+        // Check if the channel is a guild (server) channel
+        if (channel.guild) {
+            // Get the guild (server) ID
+            const guildId = channel.guild.id;
+    
+            const discordUser = discordClient.users.cache.find(user => {
+                const normalizedUsername = username.toLowerCase();
+                return (
+                    // Match by account name
+                    user.username.toLowerCase() === normalizedUsername ||
+                    // Match by server nickname
+                    (user.nickname && user.nickname.toLowerCase() === normalizedUsername) ||
+                    // Match by account tag
+                    user.tag.toLowerCase() === `${normalizedUsername}#${user.discriminator}`
+                ) && (
+                    // Check if the user is a member of the same guild
+                    discordClient.guilds.cache.get(guildId).members.cache.has(user.id)
+                );
+            });
+    
+            if (discordUser) {
+                // Convert IRC mention to Discord mention format
+                return `<@${discordUser.id}>`; // Replace IRC mention with Discord mention in the message
+            }
         }
-
-        return match; // If no corresponding Discord user found, keep the original mention in the message
+    
+        return match; // If no corresponding Discord user found or if the channel is not a guild channel, keep the original mention in the message
     });
     //console.log(event.target.toLowerCase());
-    const mappedChannel = channelMappings[event.target.toLowerCase()];
+
     if(mappedChannel) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
         const showMoreInfo = mappedChannel.showMoreInfo;
