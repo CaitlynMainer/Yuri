@@ -490,8 +490,15 @@ discordClient.on('messageCreate', async (message) => {
         // Get the sender's nickname on the server
         let senderNickname = message.member ? message.member.nickname : null;
         // If the sender doesn't have a server nickname, use their account nickname
-        if(!senderNickname) {
-            senderNickname = message.member.user.globalName;
+        if (!senderNickname) {
+            // Check if the message is sent by a webhook
+            if (message.webhookId) {
+                // Use the webhook's name
+                senderNickname = message.author.username;
+            } else {
+                // If the sender doesn't have a server nickname, use their account nickname
+                senderNickname = message.member ? message.member.user.globalName : null;
+            }
         }
         // If the sender doesn't have an account nickname, use their account name
         if(!senderNickname) {
