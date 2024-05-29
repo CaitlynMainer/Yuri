@@ -338,7 +338,7 @@ ircClient.on('join', async (event) => {
         console.log(event.channel, mappedDiscordChannelID, showMoreInfo);
         // Regular user message, send it to Discord
         const yuriWebhook = await getWebhook(discordChannel);
-        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${event.nick} Joined ${event.channel} On IRC`)
+        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${event.nick}@${event.hostname} Joined ${event.channel} On IRC`)
     }
 });
 // Part event handler
@@ -360,7 +360,30 @@ ircClient.on('part', async (event) => {
         const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
         // Regular user message, send it to Discord
         const yuriWebhook = await getWebhook(discordChannel);
-        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has left ${ircChannel} (${event.message || 'No reason provided'})`);
+        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser}@${event.hostname} has left ${ircChannel} (${event.message || 'No reason provided'})`);
+    }
+});
+// Kick event handler
+ircClient.on('kick', async (event) => {
+    if(event.nick === ircConfig.nick) {
+        return;
+    }
+    const ircChannel = event.channel;
+    const ircUser = event.nick;
+    const kickedUser = event.kicked;
+    // Check if the user is in the channel
+    if(ircUserChannelMapping[ircChannel] && ircUserChannelMapping[ircChannel].includes(kickedUser)) {
+        // Remove the user from the channel in ircUserChannelMapping
+        ircUserChannelMapping[ircChannel] = ircUserChannelMapping[ircChannel].filter(user => user !== kickedUser);
+    }
+    // Handle Discord relay logic here if needed
+    const mappedChannel = channelMappings[ircChannel.toLowerCase()];
+    if(mappedChannel && mappedChannel.showMoreInfo) {
+        const mappedDiscordChannelID = mappedChannel.discordChannelID;
+        const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
+        // Regular user message, send it to Discord
+        const yuriWebhook = await getWebhook(discordChannel);
+        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${kickedUser}@${event.hostname} was kicked from ${ircChannel} by ${ircUser}: (${event.message || 'No reason provided'})`);
     }
 });
 // Quit event handler
@@ -379,7 +402,7 @@ ircClient.on('quit', async (event) => {
                 const mappedDiscordChannelID = mappedChannel.discordChannelID;
                 const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
                 const yuriWebhook = await getWebhook(discordChannel);
-                sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser} has quit IRC (${quitMessage}) in ${channel}`);
+                sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${ircUser}@${event.hostname} has quit IRC (${quitMessage}) in ${channel}`);
             }
         }
     });
