@@ -44,8 +44,8 @@ ircClient.connect({
     host: ircConfig.server,
     port: ircConfig.port,
     nick: ircConfig.nick,
-    username: ircConfig.nick,
-    password: ircConfig.password,
+    username: ircConfig.identNick,
+    password: ircConfig.identPass,
     channels: ircConfig.channels
 });
 const discordClient = new Client({
