@@ -46,6 +46,13 @@ ircClient.connect({
     nick: ircConfig.nick,
     username: ircConfig.identNick,
     password: ircConfig.identPass,
+
+    sasl_disconnect_on_fail: false,
+    account: {
+        account: ircConfig.identNick,
+        password: ircConfig.identPass,
+    },
+
     channels: ircConfig.channels
 });
 const discordClient = new Client({
