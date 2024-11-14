@@ -390,7 +390,7 @@ ircClient.on('kick', async (event) => {
         const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
         // Regular user message, send it to Discord
         const yuriWebhook = await getWebhook(discordChannel);
-        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${kickedUser}@${event.hostname} was kicked from ${ircChannel} by ${ircUser}: (${event.message || 'No reason provided'})`);
+        sendMessageToDiscord(yuriWebhook, ircConfig.nick, `${kickedUser} was kicked from ${ircChannel} by ${ircUser}: (${event.message || 'No reason provided'})`);
     }
 });
 // Quit event handler
