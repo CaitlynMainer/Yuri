@@ -538,10 +538,19 @@ discordClient.on('messageCreate', async (message) => {
         if(message.author.id === discordClient.user.id) {
             return;
         }
-        if(discordMessage.startsWith('!adduser')) {
-            if(config.discord.allowedUsers.includes(message.author.id)) {
-                // Command to add allowed Discord user
+        if (discordMessage.startsWith('!adduser')) {
+            if (config.discord.allowedUsers.includes(message.author.id)) {
                 const [, userId] = discordMessage.split(' ');
+        
+                // Validate that a userId is provided and is numeric
+                if (!userId || !/^\d+$/.test(userId)) {
+                    message.channel.send(
+                        `Usage: !adduser UserID\n` +
+                        `- UserID should be a numeric Discord user ID.`
+                    );
+                    return;
+                }
+        
                 addAllowedDiscordUser(userId);
                 message.channel.send(`User ${userId} has been added to the allowed users list.`);
             } else {
@@ -549,11 +558,21 @@ discordClient.on('messageCreate', async (message) => {
             }
             return;
         }
-        if(discordMessage.startsWith('!deluser')) {
-            // Command to remove allowed Discord user
-            if(config.discord.allowedUsers.includes(message.author.id)) {
+        
+        if (discordMessage.startsWith('!deluser')) {
+            if (config.discord.allowedUsers.includes(message.author.id)) {
                 const [, userId] = discordMessage.split(' ');
-                if(config.discord.allowedUsers.includes(userId)) {
+        
+                // Validate that a userId is provided and is numeric
+                if (!userId || !/^\d+$/.test(userId)) {
+                    message.channel.send(
+                        `Usage: !deluser UserID\n` +
+                        `- UserID should be a numeric Discord user ID.`
+                    );
+                    return;
+                }
+        
+                if (config.discord.allowedUsers.includes(userId)) {
                     config.discord.allowedUsers = config.discord.allowedUsers.filter(user => user !== userId);
                     saveConfig();
                     message.channel.send(`User ${userId} has been removed from the allowed users list.`);
@@ -565,18 +584,33 @@ discordClient.on('messageCreate', async (message) => {
             }
             return;
         }
+        
         // Discord command handler
-        if(discordMessage.startsWith('!link')) {
-            if(config.discord.allowedUsers.includes(message.author.id)) {
-                const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = discordMessage.split(' ');
+        if (discordMessage.startsWith('!link')) {
+            if (config.discord.allowedUsers.includes(message.author.id)) {
+                const [, discordChannelID, ircChannel, showMoreInfo = 'false'] = discordMessage.split(' ');
+        
+                // Validate arguments
+                if (!/^\d+$/.test(discordChannelID) || !ircChannel.startsWith('#')) {
+                    message.channel.send(
+                        `Usage: !link DiscordChannelID #IRCChannel [showMoreInfo]\n` +
+                        `- DiscordChannelID should be numeric only.\n` +
+                        `- #IRCChannel should include the hash (#) symbol.\n` +
+                        `- showMoreInfo is optional and should be 'true' or 'false'.`
+                    );
+                    return;
+                }
+        
                 // Update channel mapping in config
                 channelMappings[ircChannel.toLowerCase()] = {
                     "discordChannelID": discordChannelID,
                     "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
                 };
-                ircClient.join(ircChannel)
+        
+                ircClient.join(ircChannel);
                 // Save updated mappings to config.json
                 saveConfig();
+        
                 message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`);
             } else {
                 message.channel.send(`Permission denied`);
