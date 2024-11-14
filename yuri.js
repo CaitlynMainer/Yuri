@@ -314,6 +314,67 @@ ircClient.on('message', async (event) => {
         //console.error(`No mapped Discord channel found for IRC channel: ${event.target.toLowerCase()}`);
     }
 });
+
+
+ircClient.on('action', async (event) => {    
+    let ircMessage = removeColorCodes(event.message);
+    ircMessage = ircToDiscordMarkdown(ircMessage);
+    const sender = event.nick;
+
+    const mappedChannel = channelMappings[event.target.toLowerCase()];
+    // Regular expression to match IRC mentions
+    const ircMentionRegex = /@(\w+)/g;
+    
+    // Replace IRC mentions with corresponding Discord mentions in the message
+    ircMessage = ircMessage.replace(ircMentionRegex, (match, username) => {
+        // Get the channel from the channel ID
+        const channel = discordClient.channels.cache.get(mappedChannel.discordChannelID);
+    
+        // Check if the channel is a guild (server) channel
+        if (channel.guild) {
+            // Get the guild (server) ID
+            const guildId = channel.guild.id;
+    
+            const discordUser = discordClient.users.cache.find(user => {
+                const normalizedUsername = username.toLowerCase();
+                return (
+                    // Match by account name
+                    user.username.toLowerCase() === normalizedUsername ||
+                    // Match by server nickname
+                    (user.nickname && user.nickname.toLowerCase() === normalizedUsername) ||
+                    // Match by account tag
+                    user.tag.toLowerCase() === `${normalizedUsername}#${user.discriminator}`
+                ) && (
+                    // Check if the user is a member of the same guild
+                    discordClient.guilds.cache.get(guildId).members.cache.has(user.id)
+                );
+            });
+    
+            if (discordUser) {
+                // Convert IRC mention to Discord mention format
+                return `<@${discordUser.id}>`; // Replace IRC mention with Discord mention in the message
+            }
+        }
+    
+        return match; // If no corresponding Discord user found or if the channel is not a guild channel, keep the original mention in the message
+    });
+    //console.log(event.target.toLowerCase());
+
+    ircMessage = "_" + ircMessage + "_";
+
+    if(mappedChannel) {
+        const mappedDiscordChannelID = mappedChannel.discordChannelID;
+        const showMoreInfo = mappedChannel.showMoreInfo;
+        const discordChannel = discordClient.channels.cache.get(mappedDiscordChannelID);
+        // Regular user message, send it to Discord
+        const yuriWebhook = await getWebhook(discordChannel);
+        sendMessageToDiscord(yuriWebhook, sender, ircMessage)
+    } else {
+        //console.error(`No mapped Discord channel found for IRC channel: ${event.target.toLowerCase()}`);
+    }
+});
+
+
 ircClient.on('wholist', (event) => {
     if(!ircUserChannelMapping[event.target]) {
         ircUserChannelMapping[event.target] = [];
