@@ -105,6 +105,12 @@ ircClient.on('message', async (event) => {
     let ircMessage = removeColorCodes(event.message);
     ircMessage = ircToDiscordMarkdown(ircMessage);
     const sender = event.nick;
+
+    // Check if the message type is 'action' to avoid handling it twice
+    if (event.type === 'action') {
+        return; // Skip processing if it's an action
+    }
+
     //const channelMappings = config.channelMappings; // Ensure channelMappings is accessible here
     //console.log('Received IRC Event:', event); // Log the entire event object
     if(ircMessage.startsWith('!adduser')) {
@@ -214,6 +220,7 @@ ircClient.on('message', async (event) => {
             exec('git pull', (error, stdout, stderr) => {
                 if(error) {
                     console.error(`Error during git pull: ${error.message}`);
+                    ircClient.say(`Error during git pull: ${error.message}`);
                     return;
                 }
                 // Check if there were any changes pulled
@@ -224,6 +231,7 @@ ircClient.on('message', async (event) => {
                             ircClient.say(event.target, `Bot is already up to date (Commit: ${commitHash}).`);
                         } else {
                             console.error(`Error getting commit hash: ${error.message}`);
+                            ircClient.say(`Error getting commit hash: ${error.message}`);
                         }
                     });
                 } else {
@@ -685,6 +693,7 @@ discordClient.on('messageCreate', async (message) => {
                 exec('git pull', (error, stdout, stderr) => {
                     if(error) {
                         console.error(`Error during git pull: ${error.message}`);
+                        message.channel.send(`Error during git pull: ${error.message}`);
                         return;
                     }
                     // Check if there were any changes pulled
@@ -695,6 +704,7 @@ discordClient.on('messageCreate', async (message) => {
                                 message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
                             } else {
                                 console.error(`Error getting commit hash: ${error.message}`);
+                                message.channel.send(`Error getting commit hash: ${error.message}`);
                             }
                         });
                     } else {
