@@ -4,7 +4,8 @@ const {
     Client,
     GatewayIntentBits,
     WebhookClient,
-    MessageType
+    MessageType,
+    Partials
 } = require('discord.js');
 const express = require('express');
 const app = express();
@@ -63,6 +64,7 @@ const discordClient = new Client({
         GatewayIntentBits.MessageContent, // GUILD_MESSAGE_TYPING
         // Add other required intents as needed
     ],
+    partials: [Partials.Message, Partials.Channel] // this is the key
 });
 discordClient.login(discordToken);
 discordClient.on('ready', async () => {
@@ -565,7 +567,52 @@ discordClient.on('messageUpdate', async (oldMessage, newMessage) => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${theDiff}`);
         }
     }
- })
+ });
+
+ discordClient.on('messageDelete', (message) => {
+  console.log('[debug] messageDelete fired:', {
+    id: message?.id,
+    partial: message?.partial,
+    channelId: message?.channelId
+  });
+});
+
+discordClient.on('messageDelete', async (message) => {
+  try {
+    // message can be partial if not cached
+    const messageId = message?.id;
+    if (!messageId) return;
+
+    const safeMessageId = String(messageId).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dirToDelete = path.join("saved_embeds", safeMessageId);
+
+    // Recursively delete directory if it exists
+    await fs.promises.rm(dirToDelete, { recursive: true, force: true });
+
+    // Optional: log
+    console.log(`[embeds] deleted dir for message ${messageId}: ${dirToDelete}`);
+  } catch (err) {
+    console.error('[embeds] error deleting directory on messageDelete:', err);
+  }
+});
+
+discordClient.on('messageDeleteBulk', async (messages) => {
+  for (const msg of messages.values()) {
+    const messageId = msg?.id;
+    if (!messageId) continue;
+
+    const safeMessageId = String(messageId).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dirToDelete = path.join('saved_embeds', safeMessageId);
+
+    try {
+      await fs.promises.rm(dirToDelete, { recursive: true, force: true });
+      console.log(`[embeds] deleted dir for bulk message ${messageId}: ${dirToDelete}`);
+    } catch (err) {
+      console.error('[embeds] bulk delete cleanup error:', err);
+    }
+  }
+});
+
 
 //We got a discord messagem, so we need to make it look pretty in IRC.
 discordClient.on('messageCreate', async (message) => {
@@ -775,13 +822,9 @@ discordClient.on('messageCreate', async (message) => {
                 const newAttachmentURL = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
                 //console.log('Modified Attachment URL:', newAttachmentURL);
                 try {
-                    const newFilePath = await downloadAndSaveFile(attachmentURL, 'saved_embeds');
+                    const newFilePath = await downloadAndSaveFile(attachmentURL, message.id, 'saved_embeds');
                     if(newFilePath) {
-                        //console.log('File downloaded and saved:', newFilePath);
-                        // Construct the new URL based on your server configuration
                         const newUrl = `${config.embedSite}${newFilePath}`;
-                        //console.log('New URL:', newUrl);
-                        //discordMessage.replace(attachmentURL, newUrl);
                         discordMessage += ` ${newUrl} `;
                     } else {
                         //console.log('Failed to download and save the file.');
@@ -973,33 +1016,42 @@ function padToSixDigits(code) {
     return '#' + code;
 }
 
-async function downloadAndSaveFile(urlIn, saveDirectory) {
-    try {
-        // Parse the URL to separate the path and query string
-        const parsedUrl = url.parse(urlIn, true);
-        const cleanUrl = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
+async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
+  try {
+    const safeMessageId = String(messageId).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const targetDir = path.join(baseDirectory, safeMessageId);
 
-        // Fetch the file content using axios with the original URL
-        const response = await axios({
-            method: 'get',
-            url: urlIn,
-            responseType: 'stream'
-        });
+    await fs.promises.mkdir(targetDir, { recursive: true });
 
-        // Generate a unique filename (e.g., using timestamp)
-        const timestamp = Date.now();
-        const fileExtension = cleanUrl.split('.').pop();
-        const savedFilePath = `${saveDirectory}/${timestamp}.${fileExtension}`;
+    const parsedUrl = url.parse(urlIn, true);
+    const cleanPathname = parsedUrl.pathname || '';
 
-        // Save the file to the specified directory
-        const writer = fs.createWriteStream(savedFilePath);
-        response.data.pipe(writer);
+    let ext = path.extname(cleanPathname);
+    if (!ext) ext = '.bin';
 
-        return `${timestamp}.${fileExtension}`; // Return the path to the saved file without the query string
-    } catch (error) {
-        console.error('Error downloading and saving file:', error);
-        return null; // Return null if there's an error
-    }
+    const filename = `${Date.now()}-${Math.random().toString(16).slice(2)}${ext}`;
+    const savedFilePath = path.join(targetDir, filename);
+
+    const response = await axios({
+      method: 'get',
+      url: urlIn,
+      responseType: 'stream'
+    });
+
+    await new Promise((resolve, reject) => {
+      const writer = fs.createWriteStream(savedFilePath);
+      response.data.pipe(writer);
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+      response.data.on('error', reject);
+    });
+
+    // IMPORTANT: return the PUBLIC path, not the disk path
+    return path.posix.join(safeMessageId, filename);
+  } catch (error) {
+    console.error('Error downloading and saving file:', error);
+    return null;
+  }
 }
 
 function removeColorCodes(message) {
@@ -1078,7 +1130,3 @@ function lineDiff(oldMessage, newMessage) {
 
     return null;
 }
-
-
-
-
