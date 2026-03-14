@@ -893,11 +893,7 @@ discordClient.on('messageCreate', async (message) => {
 
         // -------- Prepare bridge identity/cache entry before relaying --------
 
-        const bridgeUser =
-            message.member?.displayName ||
-            message.author?.globalName ||
-            message.author?.username ||
-            'Unknown';
+        const bridgeUser = senderNickname || 'Unknown';
 
         const bridgedText = String(message.cleanContent || message.content || '').trim();
 
