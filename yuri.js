@@ -40,6 +40,96 @@ app.use('/saved_embeds', express.static(savedEmbedsPath));
 server.listen(config.webPort, () => {
     console.log(`Web server running on port ${config.webPort}`);
 });
+
+
+app.use(express.json());
+
+app.post('/resolve-discord-id', (req, res) => {
+  try {
+    const auth = config.discordBridgeAuth || {};
+    const requiredSecret = String(auth.secret || '').trim();
+
+    if (requiredSecret) {
+      const provided = String(req.get('x-bridge-secret') || '').trim();
+      if (provided !== requiredSecret) {
+        return res.status(403).send('');
+      }
+    }
+
+    pruneRecentRelayIndex();
+
+    const channel = String(req.body?.channel || '').trim();
+    const bridgeUser = String(req.body?.bridgeUser || '').trim();
+    const message = String(req.body?.message || '').trim();
+
+    if (!channel || !bridgeUser || !message) {
+      return res.status(400).send('');
+    }
+
+    const key = makeRelayKey({ channel, bridgeUser, message });
+    const matches = recentRelayIndex.get(key) || [];
+
+    if (matches.length === 0) {
+      return res.status(404).send('');
+    }
+
+    const winner = matches[matches.length - 1];
+    return res.type('text/plain').send(String(winner.discordUserId));
+  } catch (err) {
+    console.error('resolve-discord-id failed:', err);
+    return res.status(500).send('');
+  }
+});
+
+const recentRelayIndex = new Map();
+const RELAY_TTL_MS = 5 * 60 * 1000;
+
+function normalizeBridgeValue(value) {
+  return String(value || '').trim();
+}
+
+function makeRelayKey({ channel, bridgeUser, message }) {
+  return [
+    normalizeBridgeValue(channel).toLowerCase(),
+    normalizeBridgeValue(bridgeUser).toLowerCase(),
+    normalizeBridgeValue(message)
+  ].join('||');
+}
+
+function pruneRecentRelayIndex() {
+  const now = Date.now();
+
+  for (const [key, entries] of recentRelayIndex.entries()) {
+    const kept = entries.filter(entry => (now - entry.ts) <= RELAY_TTL_MS);
+    if (kept.length > 0) {
+      recentRelayIndex.set(key, kept);
+    } else {
+      recentRelayIndex.delete(key);
+    }
+  }
+}
+
+function rememberDiscordRelay({ channel, bridgeUser, message, discordUserId, discordTag, discordMessageId }) {
+  if (!channel || !bridgeUser || !message || !discordUserId) {
+    return;
+  }
+
+  pruneRecentRelayIndex();
+
+  const key = makeRelayKey({ channel, bridgeUser, message });
+  const existing = recentRelayIndex.get(key) || [];
+
+  existing.push({
+    ts: Date.now(),
+    discordUserId: String(discordUserId),
+    discordTag: String(discordTag || ''),
+    discordMessageId: String(discordMessageId || '')
+  });
+
+  recentRelayIndex.set(key, existing.slice(-10));
+}
+
+
 const ircClient = new irc.Client();
 ircClient.connect({
     host: ircConfig.server,
@@ -844,6 +934,22 @@ discordClient.on('messageCreate', async (message) => {
         const lines = discordMessage.split('\n');
         lines.forEach(line => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
+        });
+        const bridgeUser = message.member?.displayName
+          || message.author?.globalName
+          || message.author?.username
+          || 'Unknown';
+        
+        const bridgedText = message.content || '';
+        const ircChannel = someMappedIrcChannel;
+        
+        rememberDiscordRelay({
+          channel: ircChannel,
+          bridgeUser,
+          message: bridgedText,
+          discordUserId: message.author.id,
+          discordTag: message.author.tag,
+          discordMessageId: message.id
         });
     }
 });
