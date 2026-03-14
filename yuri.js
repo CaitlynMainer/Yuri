@@ -704,101 +704,105 @@ discordClient.on('messageDeleteBulk', async (messages) => {
 });
 
 
-//We got a discord messagem, so we need to make it look pretty in IRC.
+// We got a Discord message, so we need to make it look pretty in IRC.
 discordClient.on('messageCreate', async (message) => {
-    const mappedIRCChannel = Object.keys(channelMappings).find(
-        (key) => channelMappings[key.toLowerCase()]?.discordChannelID === message.channel.id
-    );
-    if(mappedIRCChannel) {
+    try {
+        const mappedIRCChannel = Object.keys(channelMappings).find(
+            (key) => channelMappings[key.toLowerCase()]?.discordChannelID === message.channel.id
+        );
 
-        let discordMessage = discordMarkdownToIRC(message.cleanContent);
-        const sender = message.author.username;
+        if (!mappedIRCChannel) {
+            return;
+        }
+
+        // Ignore messages sent by the bot itself
+        if (message.author.id === discordClient.user.id) {
+            return;
+        }
+
         // Check if the message is from a webhook
-        if(message.webhookId) {
-            // Fetch webhooks from the channel
+        if (message.webhookId) {
             const yuriWebhook = await getWebhook(message.channel);
-            if(yuriWebhook && message.webhookId === yuriWebhook.id) {
+            if (yuriWebhook && message.webhookId === yuriWebhook.id) {
                 // If it's from the yuri webhook, do not relay back to IRC
-                //console.log('Message from yuri webhook, not relaying to IRC.');
                 return;
             }
         }
+
+        let discordMessage = discordMarkdownToIRC(message.cleanContent || '');
+
+        const sender = message.author.username;
+
         // Get the sender's nickname on the server
         let senderNickname = message.member ? message.member.nickname : null;
-        // If the sender doesn't have a server nickname, use their account nickname
+
+        // If the sender doesn't have a server nickname, use their global/account nickname
         if (!senderNickname) {
-            // Check if the message is sent by a webhook
             if (message.webhookId) {
-                // Use the webhook's name
                 senderNickname = message.author.username;
             } else {
-                // If the sender doesn't have a server nickname, use their account nickname
                 senderNickname = message.member ? message.member.user.globalName : null;
             }
         }
-        // If the sender doesn't have an account nickname, use their account name
-        if(!senderNickname) {
+
+        // If the sender doesn't have an account nickname, use their account tag
+        if (!senderNickname) {
             senderNickname = message.author.tag;
         }
-        // Ignore messages sent by the bot itself
-        if(message.author.id === discordClient.user.id) {
-            return;
-        }
+
+        // -------- Discord-side admin commands --------
+
         if (discordMessage.startsWith('!adduser')) {
             if (config.discord.allowedUsers.includes(message.author.id)) {
                 const [, userId] = discordMessage.split(' ');
-        
-                // Validate that a userId is provided and is numeric
+
                 if (!userId || !/^\d+$/.test(userId)) {
-                    message.channel.send(
+                    await message.channel.send(
                         `Usage: !adduser UserID\n` +
                         `- UserID should be a numeric Discord user ID.`
                     );
                     return;
                 }
-        
+
                 addAllowedDiscordUser(userId);
-                message.channel.send(`User ${userId} has been added to the allowed users list.`);
+                await message.channel.send(`User ${userId} has been added to the allowed users list.`);
             } else {
-                message.channel.send(`Permission denied`);
+                await message.channel.send('Permission denied');
             }
             return;
         }
-        
+
         if (discordMessage.startsWith('!deluser')) {
             if (config.discord.allowedUsers.includes(message.author.id)) {
                 const [, userId] = discordMessage.split(' ');
-        
-                // Validate that a userId is provided and is numeric
+
                 if (!userId || !/^\d+$/.test(userId)) {
-                    message.channel.send(
+                    await message.channel.send(
                         `Usage: !deluser UserID\n` +
                         `- UserID should be a numeric Discord user ID.`
                     );
                     return;
                 }
-        
+
                 if (config.discord.allowedUsers.includes(userId)) {
                     config.discord.allowedUsers = config.discord.allowedUsers.filter(user => user !== userId);
                     saveConfig();
-                    message.channel.send(`User ${userId} has been removed from the allowed users list.`);
+                    await message.channel.send(`User ${userId} has been removed from the allowed users list.`);
                 } else {
-                    message.channel.send(`User ${userId} is not in the allowed users list.`);
+                    await message.channel.send(`User ${userId} is not in the allowed users list.`);
                 }
             } else {
-                message.channel.send(`Permission denied`);
+                await message.channel.send('Permission denied');
             }
             return;
         }
-        
-        // Discord command handler
+
         if (discordMessage.startsWith('!link')) {
             if (config.discord.allowedUsers.includes(message.author.id)) {
                 const [, discordChannelID, ircChannel, showMoreInfo = 'false'] = discordMessage.split(' ');
-        
-                // Validate arguments
-                if (!/^\d+$/.test(discordChannelID) || !ircChannel.startsWith('#')) {
-                    message.channel.send(
+
+                if (!/^\d+$/.test(discordChannelID) || !ircChannel || !ircChannel.startsWith('#')) {
+                    await message.channel.send(
                         `Usage: !link DiscordChannelID #IRCChannel [showMoreInfo]\n` +
                         `- DiscordChannelID should be numeric only.\n` +
                         `- #IRCChannel should include the hash (#) symbol.\n` +
@@ -806,151 +810,176 @@ discordClient.on('messageCreate', async (message) => {
                     );
                     return;
                 }
-        
-                // Update channel mapping in config
+
                 channelMappings[ircChannel.toLowerCase()] = {
-                    "discordChannelID": discordChannelID,
-                    "showMoreInfo": showMoreInfo.toLowerCase() === 'true'
+                    discordChannelID,
+                    showMoreInfo: showMoreInfo.toLowerCase() === 'true'
                 };
-        
+
                 ircClient.join(ircChannel);
-                // Save updated mappings to config.json
                 saveConfig();
-        
-                message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`);
+
+                await message.channel.send(
+                    `Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel} with showMoreInfo set to ${showMoreInfo}`
+                );
             } else {
-                message.channel.send(`Permission denied`);
+                await message.channel.send('Permission denied');
             }
             return;
         }
-        //!update
-        if(message.content.startsWith('!update')) {
-            if(config.discord.allowedUsers.includes(message.author.id)) {
-                // Run git pull command
-                exec('git pull', (error, stdout, stderr) => {
-                    if(error) {
+
+        if (message.content.startsWith('!update')) {
+            if (config.discord.allowedUsers.includes(message.author.id)) {
+                exec('git pull', async (error, stdout, stderr) => {
+                    if (error) {
                         console.error(`Error during git pull: ${error.message}`);
-                        message.channel.send(`Error during git pull: ${error.message}`);
+                        await message.channel.send(`Error during git pull: ${error.message}`);
                         return;
                     }
-                    // Check if there were any changes pulled
-                    if(stdout.includes('Already up to date.')) {
-                        exec('git rev-parse HEAD', (error, stdout, stderr) => {
-                            if(!error) {
-                                const commitHash = stdout.trim();
-                                message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
+
+                    if (stdout.includes('Already up to date.')) {
+                        exec('git rev-parse HEAD', async (error2, stdout2, stderr2) => {
+                            if (!error2) {
+                                const commitHash = stdout2.trim();
+                                await message.channel.send(`Bot is already up to date (Commit: ${commitHash}).`);
                             } else {
-                                console.error(`Error getting commit hash: ${error.message}`);
-                                message.channel.send(`Error getting commit hash: ${error.message}`);
+                                console.error(`Error getting commit hash: ${error2.message}`);
+                                await message.channel.send(`Error getting commit hash: ${error2.message}`);
                             }
                         });
                     } else {
-                        message.channel.send('Bot has been updated. Relaunching...');
-                        // Relaunch the bot
+                        await message.channel.send('Bot has been updated. Relaunching...');
                         process.exit(0);
                     }
                 });
             } else {
-                message.channel.send(`Permission denied`);
-            }
-        }
-        // Discord command handler
-        if(discordMessage.startsWith('!showmoreinfo')) {
-            if(config.discord.allowedUsers.includes(message.author.id)) {
-                const [, showMoreInfoArg] = discordMessage.split(' ');
-                if(showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
-                    const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
-                    const discordChannelID = message.channel.id;
-                    // Find the IRC channel ID based on the current Discord channel
-                    const ircChannel = Object.keys(channelMappings).find(ircChannel => {
-                        return config.channelMappings[ircChannel.toLowerCase()].discordChannelID === discordChannelID;
-                    });
-                    if(ircChannel) {
-                        // Update showMoreInfo property for the IRC channel
-                        channelMappings[ircChannel.toLowerCase()].showMoreInfo = showMoreInfo;
-                        // Save updated mappings to config.json
-                        saveConfig();
-                        message.channel.send(`Set showMoreInfo to ${showMoreInfo}`);
-                    } else {
-                        message.channel.send("Error: Unable to find the corresponding IRC channel for the current Discord channel.");
-                    }
-                } else {
-                    message.channel.send("Invalid argument. Please use `true` or `false` after the command.");
-                }
-            } else {
-                message.channel.send(`Permission denied`);
+                await message.channel.send('Permission denied');
             }
             return;
         }
+
+        if (discordMessage.startsWith('!showmoreinfo')) {
+            if (config.discord.allowedUsers.includes(message.author.id)) {
+                const [, showMoreInfoArg] = discordMessage.split(' ');
+
+                if (
+                    showMoreInfoArg !== undefined &&
+                    (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')
+                ) {
+                    const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
+                    const discordChannelID = message.channel.id;
+
+                    const ircChannel = Object.keys(channelMappings).find((ircChan) => {
+                        return channelMappings[ircChan.toLowerCase()]?.discordChannelID === discordChannelID;
+                    });
+
+                    if (ircChannel) {
+                        channelMappings[ircChannel.toLowerCase()].showMoreInfo = showMoreInfo;
+                        saveConfig();
+                        await message.channel.send(`Set showMoreInfo to ${showMoreInfo}`);
+                    } else {
+                        await message.channel.send(
+                            'Error: Unable to find the corresponding IRC channel for the current Discord channel.'
+                        );
+                    }
+                } else {
+                    await message.channel.send('Invalid argument. Please use `true` or `false` after the command.');
+                }
+            } else {
+                await message.channel.send('Permission denied');
+            }
+            return;
+        }
+
+        // -------- Prepare bridge identity/cache entry before relaying --------
+
+        const bridgeUser =
+            message.member?.displayName ||
+            message.author?.globalName ||
+            message.author?.username ||
+            'Unknown';
+
+        const bridgedText = String(message.cleanContent || message.content || '').trim();
+
+        if (bridgedText) {
+            rememberDiscordRelay({
+                channel: mappedIRCChannel,
+                bridgeUser,
+                message: bridgedText,
+                discordUserId: message.author.id,
+                discordTag: message.author.tag,
+                discordMessageId: message.id
+            });
+        }
+
+        // -------- Message transformations --------
+
         const isCodeBlock = /^```[\s\S]*```$/.test(discordMessage);
         const hasMoreThan3NewLines = discordMessage.split('\n').length > 3;
-        if(isCodeBlock || hasMoreThan3NewLines) {
+
+        if (isCodeBlock || hasMoreThan3NewLines) {
             const hastebinLink = await uploadToHastebin(discordMessage);
-            if(hastebinLink) {
-                // Replace the message with the Hastebin link
+            if (hastebinLink) {
                 discordMessage = hastebinLink;
             } else {
-                // Handle error uploading to Hastebin
                 discordMessage = 'Error uploading to Hastebin. Please try again later.';
             }
         }
-        if(message.embeds.length > 0) {
-            // Iterate through the embeds and extract URLs
-            message.embeds.forEach(embed => {
+
+        if (message.embeds.length > 0) {
+            message.embeds.forEach((embed) => {
                 const embedURL = embed.url;
                 console.log('Embed URL:', embedURL);
-                // Process the embed URL as needed
             });
         }
-        if(message.attachments.size > 0) {
-            // Iterate through the attachments and extract URLs
-            for(const attachment of message.attachments.values()) {
+
+        if (message.attachments.size > 0) {
+            for (const attachment of message.attachments.values()) {
                 const attachmentURL = attachment.url;
-                //console.log('Attachment URL:', attachmentURL);
-                // Remove query parameters from the attachment URL
-                const parsedUrl = url.parse(attachmentURL);
-                const newAttachmentURL = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
-                //console.log('Modified Attachment URL:', newAttachmentURL);
+
                 try {
                     const newFilePath = await downloadAndSaveFile(attachmentURL, message.id, 'saved_embeds');
-                    if(newFilePath) {
+                    if (newFilePath) {
                         const newUrl = `${config.embedSite}${newFilePath}`;
                         discordMessage += ` ${newUrl} `;
-                    } else {
-                        //console.log('Failed to download and save the file.');
                     }
                 } catch (error) {
-                    console.error('Error:', error);
+                    console.error('Error saving attachment:', error);
                 }
             }
         }
-        //console.log(`Message Type: ${message.type}`)
+
+        // -------- Relay replies --------
+
         if (message.type === MessageType.Reply) {
-            const msg1 = await message.fetchReference();
-            var originalMessage = truncateString(discordMarkdownToIRC(msg1.cleanContent), 60);
-            //console.log(msg1.author.displayName, msg1.content);
-            ircClient.say(mappedIRCChannel, `> <${antiPing(msg1.author.displayName)}> ${originalMessage}`);
+            try {
+                const msg1 = await message.fetchReference();
+                const originalAuthor =
+                    msg1.member?.displayName ||
+                    msg1.author?.globalName ||
+                    msg1.author?.username ||
+                    msg1.author?.tag ||
+                    'Unknown';
+
+                const originalMessage = truncateString(
+                    discordMarkdownToIRC(msg1.cleanContent || ''),
+                    60
+                );
+
+                ircClient.say(mappedIRCChannel, `> <${antiPing(originalAuthor)}> ${originalMessage}`);
+            } catch (error) {
+                console.error('Error fetching Discord reply reference:', error);
+            }
         }
+
+        // -------- Relay the actual message --------
+
         const lines = discordMessage.split('\n');
-        lines.forEach(line => {
+        lines.forEach((line) => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
         });
-        const bridgeUser = message.member?.displayName
-          || message.author?.globalName
-          || message.author?.username
-          || 'Unknown';
-        
-        const bridgedText = message.content || '';
-        const ircChannel = someMappedIrcChannel;
-        
-        rememberDiscordRelay({
-          channel: ircChannel,
-          bridgeUser,
-          message: bridgedText,
-          discordUserId: message.author.id,
-          discordTag: message.author.tag,
-          discordMessageId: message.id
-        });
+    } catch (error) {
+        console.error('Discord message handler failed:', error);
     }
 });
 //Function defs below.
