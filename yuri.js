@@ -194,8 +194,8 @@ ircClient.on('registered', () => {
 
 
 ircClient.on('message', async (event) => {    
-    let ircMessage = removeColorCodes(event.message);
-    ircMessage = ircToDiscordMarkdown(ircMessage);
+    const plainIrcMessage = stripIrcFormatting(event.message);
+    let ircMessage = ircToDiscordBridgeMessage(event.message);
     const sender = event.nick;
 
     // Check if the message type is 'action' to avoid handling it twice
@@ -205,7 +205,7 @@ ircClient.on('message', async (event) => {
 
     //const channelMappings = config.channelMappings; // Ensure channelMappings is accessible here
     //console.log('Received IRC Event:', event); // Log the entire event object
-    if(ircMessage.startsWith('!adduser')) {
+    if(plainIrcMessage.startsWith('!adduser')) {
         // Command to add registered IRC user
         const [, nickname] = ircMessage.split(' ');
         addRegisteredIRCUser(nickname);
@@ -213,7 +213,7 @@ ircClient.on('message', async (event) => {
         saveConfig(); // Save config after modifying registered users list
         return;
     }
-    if(ircMessage.startsWith('!deluser')) {
+    if(plainIrcMessage.startsWith('!deluser')) {
         // Command to remove registered IRC user
         const [, nickname] = ircMessage.split(' ');
         if(config.irc.registeredUsers.includes(nickname)) {
@@ -225,7 +225,7 @@ ircClient.on('message', async (event) => {
         }
         return;
     }
-    if(ircMessage.startsWith('!setmyavatar')) {
+    if(plainIrcMessage.startsWith('!setmyavatar')) {
         const [, avatarUrl] = ircMessage.split(' ');
         const nick = sender;
         const avatarFileName = `${nick}.*`;
@@ -267,7 +267,7 @@ ircClient.on('message', async (event) => {
         }
     }
     // IRC command handler
-    if(ircMessage.startsWith('!link')) {
+    if(plainIrcMessage.startsWith('!link')) {
         if(config.irc.registeredUsers.includes(sender)) {
             const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = ircMessage.split(' ');
             // Update channel mapping in config
@@ -284,7 +284,7 @@ ircClient.on('message', async (event) => {
         }
         return;
     }
-    if (ircMessage.startsWith('!unlink')) {
+    if (plainIrcMessage.startsWith('!unlink')) {
         if (config.irc.registeredUsers.includes(sender)) {
             const [, ircChannel] = ircMessage.split(' ');
     
@@ -306,7 +306,7 @@ ircClient.on('message', async (event) => {
     }
     
     //!update
-    if(ircMessage.startsWith('!update')) {
+    if(plainIrcMessage.startsWith('!update')) {
         if(config.irc.registeredUsers.includes(sender)) {
             // Run git pull command
             exec('git pull', (error, stdout, stderr) => {
@@ -337,7 +337,7 @@ ircClient.on('message', async (event) => {
         }
     }
     // Discord command handler
-    if(ircMessage.startsWith('!showmoreinfo')) {
+    if(plainIrcMessage.startsWith('!showmoreinfo')) {
         if(config.irc.registeredUsers.includes(sender)) {
             const [, showMoreInfoArg] = ircMessage.split(' ');
             if(showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
@@ -417,8 +417,7 @@ ircClient.on('message', async (event) => {
 
 
 ircClient.on('action', async (event) => {    
-    let ircMessage = removeColorCodes(event.message);
-    ircMessage = ircToDiscordMarkdown(ircMessage);
+    let ircMessage = ircToDiscordBridgeMessage(event.message);
     const sender = event.nick;
 
     const mappedChannel = channelMappings[event.target.toLowerCase()];
@@ -460,7 +459,9 @@ ircClient.on('action', async (event) => {
     });
     //console.log(event.target.toLowerCase());
 
-    ircMessage = "_" + ircMessage + "_";
+    if (!ircMessage.startsWith('```ansi\n')) {
+        ircMessage = "_" + ircMessage + "_";
+    }
 
     if(mappedChannel) {
         const mappedDiscordChannelID = mappedChannel.discordChannelID;
@@ -1185,12 +1186,6 @@ async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
   }
 }
 
-function removeColorCodes(message) {
-    // Regular expression to match IRC color codes
-    const colorCodeRegex = /\x03(?:\d{1,2}(?:,\d{1,2})?)?|\x02|\x0F|\x16|\x1D|\x1F|\x03(?:\d{1,2}(?:,\d{1,2})?)?|\x04(?:\d{1,2}(?:,\d{1,2})?)?/g;
-    // Replace color codes with an empty string
-    return message.replace(colorCodeRegex, '');
-}
 async function uploadToHastebin(content) {
     try {
         const response = await axios.post(`${config.pasteURL}/documents`, content);
@@ -1199,17 +1194,6 @@ async function uploadToHastebin(content) {
         console.error('Error uploading to Hastebin:', error);
         return null;
     }
-}
-
-function ircToDiscordMarkdown(message) {
-    const ircToDiscord = {
-        '\x02': '**', // Bold
-        '\x1F': '__', // Underline
-        '\x1D': '*', // Italic
-        '~~': '~~' // Strike-through
-    };
-    const ircFormattingRegex = /\x02|\x1F|\x1D|\x03(?:\d{1,2}(?:,\d{1,2})?)?/g;
-    return message.replace(ircFormattingRegex, match => ircToDiscord[match]);
 }
 
 function truncateString(str, maxLength) {
@@ -1260,4 +1244,239 @@ function lineDiff(oldMessage, newMessage) {
     }
 
     return null;
+}
+
+function hasIrcFormatting(message) {
+    return /[\x02\x03\x04\x0F\x16\x1D\x1F]/.test(String(message || ''));
+}
+
+function stripIrcFormatting(message) {
+    return String(message || '')
+        .replace(/\x03(?:\d{1,2}(?:,\d{1,2})?)?/g, '')
+        .replace(/\x04(?:[0-9A-Fa-f]{6}(?:,[0-9A-Fa-f]{6})?)?/g, '')
+        .replace(/[\x02\x0F\x16\x1D\x1F\x1E]/g, '');
+}
+
+// Keep this name so old call sites don't explode.
+function removeColorCodes(message) {
+    return stripIrcFormatting(message);
+}
+
+function escapeDiscordAnsiCodeblock(text) {
+    return String(text || '')
+        // Prevent a malicious/accidental ``` from closing the ANSI block.
+        .replace(/```/g, '`\u200b``')
+        // ESC should only come from us.
+        .replace(/\x1b/g, '');
+}
+
+// Discord's ANSI renderer is limited. This maps mIRC 0-15 to the closest useful ANSI 30-37 color.
+// mIRC colors:
+// 00 white, 01 black, 02 blue, 03 green, 04 red, 05 brown, 06 purple, 07 orange,
+// 08 yellow, 09 light green, 10 cyan, 11 light cyan, 12 light blue, 13 pink, 14 grey, 15 light grey
+const IRC_TO_ANSI_FG = {
+    0: 37,  // white
+    1: 30,  // black/dark gray
+    2: 34,  // blue
+    3: 32,  // green
+    4: 31,  // red
+    5: 31,  // brown -> red-ish, no brown FG
+    6: 35,  // purple
+    7: 33,  // orange -> gold/yellow
+    8: 33,  // yellow
+    9: 32,  // light green
+    10: 36, // cyan
+    11: 36, // light cyan
+    12: 34, // light blue
+    13: 35, // pink
+    14: 30, // grey
+    15: 37  // light grey
+};
+
+const IRC_TO_ANSI_BG = {
+    0: 47,
+    1: 40,
+    2: 44,
+    3: 42,
+    4: 41,
+    5: 41,
+    6: 45,
+    7: 43,
+    8: 43,
+    9: 42,
+    10: 46,
+    11: 46,
+    12: 44,
+    13: 45,
+    14: 40,
+    15: 47
+};
+
+function readIrcColorNumber(message, index) {
+    const remaining = message.slice(index);
+    const match = remaining.match(/^\d{1,2}/);
+
+    if (!match) {
+        return { value: null, length: 0 };
+    }
+
+    // Prefer two digits only when they are valid mIRC color range 00-15.
+    if (match[0].length >= 2) {
+        const twoDigit = parseInt(match[0].slice(0, 2), 10);
+        if (twoDigit >= 0 && twoDigit <= 15) {
+            return { value: twoDigit, length: 2 };
+        }
+    }
+
+    const oneDigit = parseInt(match[0][0], 10);
+    return { value: oneDigit, length: 1 };
+}
+
+function ansiSequence(state) {
+    const codes = [];
+
+    if (state.bold) {
+        codes.push(1);
+    }
+
+    if (state.underline) {
+        codes.push(4);
+    }
+
+    if (state.fg !== null && state.fg !== undefined) {
+        codes.push(state.fg);
+    }
+
+    if (state.bg !== null && state.bg !== undefined) {
+        codes.push(state.bg);
+    }
+
+    if (!codes.length) {
+        return '\x1b[0m';
+    }
+
+    return `\x1b[${codes.join(';')}m`;
+}
+
+function ircToDiscordAnsiCodeblock(message) {
+    message = escapeDiscordAnsiCodeblock(message);
+
+    let out = '';
+    const state = {
+        bold: false,
+        underline: false,
+        fg: null,
+        bg: null
+    };
+
+    function emitState() {
+        out += ansiSequence(state);
+    }
+
+    for (let i = 0; i < message.length; i++) {
+        const ch = message[i];
+
+        // Bold toggle
+        if (ch === '\x02') {
+            state.bold = !state.bold;
+            emitState();
+            continue;
+        }
+
+        // Underline toggle
+        if (ch === '\x1F') {
+            state.underline = !state.underline;
+            emitState();
+            continue;
+        }
+
+        // Italic toggle. Discord ANSI codeblocks do not reliably support italic,
+        // so we intentionally drop the control code instead of creating broken output.
+        if (ch === '\x1D') {
+            continue;
+        }
+
+        // Reverse color toggle. Approximate by swapping fg/bg if both exist.
+        if (ch === '\x16') {
+            const oldFg = state.fg;
+            state.fg = state.bg;
+            state.bg = oldFg;
+            emitState();
+            continue;
+        }
+
+        // Full reset
+        if (ch === '\x0F') {
+            state.bold = false;
+            state.underline = false;
+            state.fg = null;
+            state.bg = null;
+            out += '\x1b[0m';
+            continue;
+        }
+
+        // mIRC color: \x03[fg][,bg]
+        if (ch === '\x03') {
+            const fg = readIrcColorNumber(message, i + 1);
+
+            // Bare ^C means reset colors only, not bold/underline.
+            if (fg.value === null) {
+                state.fg = null;
+                state.bg = null;
+                emitState();
+                continue;
+            }
+
+            i += fg.length;
+            state.fg = IRC_TO_ANSI_FG[fg.value] ?? null;
+
+            if (message[i + 1] === ',') {
+                const bg = readIrcColorNumber(message, i + 2);
+
+                if (bg.value !== null) {
+                    i += 1 + bg.length;
+                    state.bg = IRC_TO_ANSI_BG[bg.value] ?? null;
+                }
+            }
+
+            emitState();
+            continue;
+        }
+
+        // Hex color from some IRC clients: \x04RRGGBB[,RRGGBB]
+        // Discord ANSI cannot render arbitrary RGB, so drop it cleanly.
+        if (ch === '\x04') {
+            const hexMatch = message.slice(i + 1).match(/^[0-9A-Fa-f]{6}(?:,[0-9A-Fa-f]{6})?/);
+            if (hexMatch) {
+                i += hexMatch[0].length;
+            }
+            continue;
+        }
+
+        out += ch;
+    }
+
+    out += '\x1b[0m';
+
+    return `\`\`\`ansi\n${out}\n\`\`\``;
+}
+
+function ircToDiscordBridgeMessage(message) {
+    if (hasIrcFormatting(message)) {
+        return ircToDiscordAnsiCodeblock(message);
+    }
+
+    return ircToDiscordMarkdown(stripIrcFormatting(message));
+}
+
+function ircToDiscordMarkdown(message) {
+    const ircToDiscord = {
+        '\x02': '**',
+        '\x1F': '__',
+        '\x1D': '*'
+    };
+
+    const ircFormattingRegex = /\x02|\x1F|\x1D/g;
+
+    return String(message || '').replace(ircFormattingRegex, match => ircToDiscord[match] || '');
 }
