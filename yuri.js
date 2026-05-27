@@ -207,7 +207,7 @@ ircClient.on('message', async (event) => {
     //console.log('Received IRC Event:', event); // Log the entire event object
     if(plainIrcMessage.startsWith('!adduser')) {
         // Command to add registered IRC user
-        const [, nickname] = ircMessage.split(' ');
+        const [, nickname] = plainIrcMessage.split(' ');
         addRegisteredIRCUser(nickname);
         ircClient.say(event.target, `User ${nickname} has been added to the registered users list.`);
         saveConfig(); // Save config after modifying registered users list
@@ -215,7 +215,7 @@ ircClient.on('message', async (event) => {
     }
     if(plainIrcMessage.startsWith('!deluser')) {
         // Command to remove registered IRC user
-        const [, nickname] = ircMessage.split(' ');
+        const [, nickname] = plainIrcMessage.split(' ');
         if(config.irc.registeredUsers.includes(nickname)) {
             config.irc.registeredUsers = config.irc.registeredUsers.filter(user => user !== nickname);
             saveConfig(); // Save config after modifying registered users list
@@ -226,7 +226,7 @@ ircClient.on('message', async (event) => {
         return;
     }
     if(plainIrcMessage.startsWith('!setmyavatar')) {
-        const [, avatarUrl] = ircMessage.split(' ');
+        const [, avatarUrl] = plainIrcMessage.split(' ');
         const nick = sender;
         const avatarFileName = `${nick}.*`;
         const avatarPath = path.join(__dirname, 'avatars');
@@ -269,7 +269,7 @@ ircClient.on('message', async (event) => {
     // IRC command handler
     if(plainIrcMessage.startsWith('!link')) {
         if(config.irc.registeredUsers.includes(sender)) {
-            const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = ircMessage.split(' ');
+            const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = plainIrcMessage.split(' ');
             // Update channel mapping in config
             channelMappings[ircChannel.toLowerCase()] = {
                 "discordChannelID": discordChannelID,
@@ -286,7 +286,7 @@ ircClient.on('message', async (event) => {
     }
     if (plainIrcMessage.startsWith('!unlink')) {
         if (config.irc.registeredUsers.includes(sender)) {
-            const [, ircChannel] = ircMessage.split(' ');
+            const [, ircChannel] = plainIrcMessage.split(' ');
     
             // Check if the channel exists in the config
             if (channelMappings.hasOwnProperty(ircChannel.toLowerCase())) {
@@ -339,7 +339,7 @@ ircClient.on('message', async (event) => {
     // Discord command handler
     if(plainIrcMessage.startsWith('!showmoreinfo')) {
         if(config.irc.registeredUsers.includes(sender)) {
-            const [, showMoreInfoArg] = ircMessage.split(' ');
+            const [, showMoreInfoArg] = plainIrcMessage.split(' ');
             if(showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
                 const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
                 const discordChannelID = message.channel.id;
@@ -459,7 +459,7 @@ ircClient.on('action', async (event) => {
     });
     //console.log(event.target.toLowerCase());
 
-    if (!ircMessage.startsWith('```ansi\n')) {
+    if (!isDiscordAnsiCodeblock(ircMessage)) {
         ircMessage = "_" + ircMessage + "_";
     }
 
@@ -1246,8 +1246,19 @@ function lineDiff(oldMessage, newMessage) {
     return null;
 }
 
+const DISCORD_CODE_FENCE = '`'.repeat(3);
+const DISCORD_ANSI_PREFIX = `${DISCORD_CODE_FENCE}ansi\n`;
+
+function isDiscordAnsiCodeblock(message) {
+    return String(message || '').startsWith(DISCORD_ANSI_PREFIX);
+}
+
+function hasIrcColorFormatting(message) {
+    return /(?:\x03(?:\d{1,2}(?:,\d{1,2})?|,\d{1,2})|\x04[0-9A-Fa-f]{6})/.test(String(message || ''));
+}
+
 function hasIrcFormatting(message) {
-    return /[\x02\x03\x04\x0F\x16\x1D\x1F]/.test(String(message || ''));
+    return /[\x02\x03\x04\x0F\x16\x1D\x1F\x1E]/.test(String(message || ''));
 }
 
 function stripIrcFormatting(message) {
@@ -1458,15 +1469,15 @@ function ircToDiscordAnsiCodeblock(message) {
 
     out += '\x1b[0m';
 
-    return `\`\`\`ansi\n${out}\n\`\`\``;
+    return `${DISCORD_ANSI_PREFIX}${out}\n${DISCORD_CODE_FENCE}`;
 }
 
 function ircToDiscordBridgeMessage(message) {
-    if (hasIrcFormatting(message)) {
+    if (hasIrcColorFormatting(message)) {
         return ircToDiscordAnsiCodeblock(message);
     }
 
-    return ircToDiscordMarkdown(stripIrcFormatting(message));
+    return ircToDiscordMarkdown(message);
 }
 
 function ircToDiscordMarkdown(message) {
@@ -1476,7 +1487,9 @@ function ircToDiscordMarkdown(message) {
         '\x1D': '*'
     };
 
-    const ircFormattingRegex = /\x02|\x1F|\x1D/g;
-
-    return String(message || '').replace(ircFormattingRegex, match => ircToDiscord[match] || '');
+    return String(message || '')
+        .replace(/\x02|\x1F|\x1D/g, match => ircToDiscord[match] || '')
+        .replace(/\x03(?:\d{1,2}(?:,\d{1,2})?)?/g, '')
+        .replace(/\x04(?:[0-9A-Fa-f]{6}(?:,[0-9A-Fa-f]{6})?)?/g, '')
+        .replace(/[\x0F\x16\x1E]/g, '');
 }
