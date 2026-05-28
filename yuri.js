@@ -1292,6 +1292,13 @@ function stripDiscordAnsiForIRC(content) {
     return text.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
+const DISCORD_CODE_FENCE = '`'.repeat(3);
+const DISCORD_ANSI_PREFIX = `${DISCORD_CODE_FENCE}ansi\n`;
+
+function isDiscordAnsiCodeblock(message) {
+    return String(message || '').startsWith(DISCORD_ANSI_PREFIX);
+}
+
 function summarizeDiscordMessageForIRC(message, maxLength = 80) {
     let text = String(message?.cleanContent || message?.content || '');
 
