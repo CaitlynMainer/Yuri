@@ -151,10 +151,11 @@ const discordClient = new Client({
         GatewayIntentBits.Guilds, // GUILD_CREATE, GUILD_DELETE
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages, // MESSAGE_CREATE, MESSAGE_UPDATE, MESSAGE_DELETE
+        GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.MessageContent, // GUILD_MESSAGE_TYPING
         // Add other required intents as needed
     ],
-    partials: [Partials.Message, Partials.Channel] // this is the key
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction] // this is the key
 });
 discordClient.login(discordToken);
 discordClient.on('ready', async () => {
@@ -207,7 +208,7 @@ ircClient.on('message', async (event) => {
     //console.log('Received IRC Event:', event); // Log the entire event object
     if(plainIrcMessage.startsWith('!adduser')) {
         // Command to add registered IRC user
-        const [, nickname] = plainIrcMessage.split(' ');
+        const [, nickname] = ircMessage.split(' ');
         addRegisteredIRCUser(nickname);
         ircClient.say(event.target, `User ${nickname} has been added to the registered users list.`);
         saveConfig(); // Save config after modifying registered users list
@@ -215,7 +216,7 @@ ircClient.on('message', async (event) => {
     }
     if(plainIrcMessage.startsWith('!deluser')) {
         // Command to remove registered IRC user
-        const [, nickname] = plainIrcMessage.split(' ');
+        const [, nickname] = ircMessage.split(' ');
         if(config.irc.registeredUsers.includes(nickname)) {
             config.irc.registeredUsers = config.irc.registeredUsers.filter(user => user !== nickname);
             saveConfig(); // Save config after modifying registered users list
@@ -226,7 +227,7 @@ ircClient.on('message', async (event) => {
         return;
     }
     if(plainIrcMessage.startsWith('!setmyavatar')) {
-        const [, avatarUrl] = plainIrcMessage.split(' ');
+        const [, avatarUrl] = ircMessage.split(' ');
         const nick = sender;
         const avatarFileName = `${nick}.*`;
         const avatarPath = path.join(__dirname, 'avatars');
@@ -269,7 +270,7 @@ ircClient.on('message', async (event) => {
     // IRC command handler
     if(plainIrcMessage.startsWith('!link')) {
         if(config.irc.registeredUsers.includes(sender)) {
-            const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = plainIrcMessage.split(' ');
+            const [, ircChannel, discordChannelID, showMoreInfo = 'false'] = ircMessage.split(' ');
             // Update channel mapping in config
             channelMappings[ircChannel.toLowerCase()] = {
                 "discordChannelID": discordChannelID,
@@ -286,7 +287,7 @@ ircClient.on('message', async (event) => {
     }
     if (plainIrcMessage.startsWith('!unlink')) {
         if (config.irc.registeredUsers.includes(sender)) {
-            const [, ircChannel] = plainIrcMessage.split(' ');
+            const [, ircChannel] = ircMessage.split(' ');
     
             // Check if the channel exists in the config
             if (channelMappings.hasOwnProperty(ircChannel.toLowerCase())) {
@@ -339,7 +340,7 @@ ircClient.on('message', async (event) => {
     // Discord command handler
     if(plainIrcMessage.startsWith('!showmoreinfo')) {
         if(config.irc.registeredUsers.includes(sender)) {
-            const [, showMoreInfoArg] = plainIrcMessage.split(' ');
+            const [, showMoreInfoArg] = ircMessage.split(' ');
             if(showMoreInfoArg !== undefined && (showMoreInfoArg.toLowerCase() === 'true' || showMoreInfoArg.toLowerCase() === 'false')) {
                 const showMoreInfo = showMoreInfoArg.toLowerCase() === 'true';
                 const discordChannelID = message.channel.id;
@@ -459,7 +460,7 @@ ircClient.on('action', async (event) => {
     });
     //console.log(event.target.toLowerCase());
 
-    if (!isDiscordAnsiCodeblock(ircMessage)) {
+    if (!ircMessage.startsWith('```ansi\n')) {
         ircMessage = "_" + ircMessage + "_";
     }
 
@@ -702,6 +703,61 @@ discordClient.on('messageDeleteBulk', async (messages) => {
       console.error('[embeds] bulk delete cleanup error:', err);
     }
   }
+});
+
+
+// We got a Discord reaction, so IRC gets a small quote-style notice.
+discordClient.on('messageReactionAdd', async (reaction, user) => {
+    try {
+        if (!user || user.bot) {
+            return;
+        }
+
+        if (reaction.partial) {
+            await reaction.fetch();
+        }
+
+        const reactedMessage = reaction.message;
+
+        if (!reactedMessage) {
+            return;
+        }
+
+        if (reactedMessage.partial) {
+            await reactedMessage.fetch();
+        }
+
+        if (!reactedMessage.channel) {
+            return;
+        }
+
+        const mappedIRCChannel = Object.keys(channelMappings).find(
+            (key) => channelMappings[key.toLowerCase()]?.discordChannelID === reactedMessage.channel.id
+        );
+
+        if (!mappedIRCChannel) {
+            return;
+        }
+
+        const guildMember = reactedMessage.guild?.members.cache.get(user.id) || null;
+        const reactorName =
+            guildMember?.displayName ||
+            user.globalName ||
+            user.username ||
+            user.tag ||
+            'Unknown';
+
+        const originalAuthor = getDiscordMessageAuthorName(reactedMessage);
+        const originalMessage = summarizeDiscordMessageForIRC(reactedMessage, 80);
+        const reactionText = formatReactionForIRC(reaction);
+
+        ircClient.say(
+            mappedIRCChannel,
+            `<${antiPing(reactorName)}> reacted ${reactionText} to <${antiPing(originalAuthor)}> ${originalMessage}`
+        );
+    } catch (error) {
+        console.error('Discord reaction handler failed:', error);
+    }
 });
 
 
@@ -1205,6 +1261,78 @@ function truncateString(str, maxLength) {
     }
 }
 
+function getDiscordMessageAuthorName(message) {
+    if (!message) {
+        return 'Unknown';
+    }
+
+    return (
+        message.member?.displayName ||
+        message.author?.globalName ||
+        message.author?.username ||
+        message.author?.tag ||
+        'Unknown'
+    );
+}
+
+function stripDiscordAnsiForIRC(content) {
+    const fence = '`'.repeat(3);
+    let text = String(content || '');
+
+    if (text.startsWith(`${fence}ansi\n`)) {
+        text = text.slice(`${fence}ansi\n`.length);
+    }
+
+    if (text.endsWith(`\n${fence}`)) {
+        text = text.slice(0, -(`\n${fence}`.length));
+    } else if (text.endsWith(fence)) {
+        text = text.slice(0, -(fence.length));
+    }
+
+    return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function summarizeDiscordMessageForIRC(message, maxLength = 80) {
+    let text = String(message?.cleanContent || message?.content || '');
+
+    if (isDiscordAnsiCodeblock(text)) {
+        text = stripDiscordAnsiForIRC(text);
+    }
+
+    if (text) {
+        text = discordMarkdownToIRC(text);
+    }
+
+    text = text.replace(/\s+/g, ' ').trim();
+
+    if (!text) {
+        if (message?.attachments?.size > 0) {
+            text = '[attachment]';
+        } else if (message?.embeds?.length > 0) {
+            text = '[embed]';
+        } else {
+            text = '[no text]';
+        }
+    }
+
+    return truncateString(text, maxLength);
+}
+
+function formatReactionForIRC(reaction) {
+    const emoji = reaction?.emoji;
+
+    if (!emoji) {
+        return ':unknown:';
+    }
+
+    if (emoji.id && emoji.name) {
+        return `:${emoji.name}:`;
+    }
+
+    return emoji.name || emoji.toString() || ':unknown:';
+}
+
+
 function lineDiff(oldMessage, newMessage) {
     const a = oldMessage.split(' ');
     const b = newMessage.split(' ');
@@ -1246,15 +1374,8 @@ function lineDiff(oldMessage, newMessage) {
     return null;
 }
 
-const DISCORD_CODE_FENCE = '`'.repeat(3);
-const DISCORD_ANSI_PREFIX = `${DISCORD_CODE_FENCE}ansi\n`;
-
-function isDiscordAnsiCodeblock(message) {
-    return String(message || '').startsWith(DISCORD_ANSI_PREFIX);
-}
-
 function hasIrcColorFormatting(message) {
-    return /(?:\x03(?:\d{1,2}(?:,\d{1,2})?|,\d{1,2})|\x04[0-9A-Fa-f]{6})/.test(String(message || ''));
+    return /[\x03\x04]/.test(String(message || ''));
 }
 
 function hasIrcFormatting(message) {
@@ -1469,7 +1590,7 @@ function ircToDiscordAnsiCodeblock(message) {
 
     out += '\x1b[0m';
 
-    return `${DISCORD_ANSI_PREFIX}${out}\n${DISCORD_CODE_FENCE}`;
+    return `\`\`\`ansi\n${out}\n\`\`\``;
 }
 
 function ircToDiscordBridgeMessage(message) {
