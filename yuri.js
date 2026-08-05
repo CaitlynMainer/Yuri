@@ -788,6 +788,16 @@ discordClient.on('messageCreate', async (message) => {
 
         let discordMessage = discordMarkdownToIRC(message.cleanContent || '');
 
+        // Webhooks (GitHub in particular) commonly send little/no message content and put
+        // the useful payload entirely in embeds. Convert those embeds to IRC-friendly text.
+        const embedText = formatDiscordEmbedsForIRC(message.embeds);
+
+        if (embedText) {
+            discordMessage = [discordMessage.trim(), embedText]
+                .filter(Boolean)
+                .join('\n');
+        }
+
         const sender = message.author.username;
 
         // Get the sender's nickname on the server
@@ -979,12 +989,7 @@ discordClient.on('messageCreate', async (message) => {
             }
         }
 
-        if (message.embeds.length > 0) {
-            message.embeds.forEach((embed) => {
-                const embedURL = embed.url;
-                console.log('Embed URL:', embedURL);
-            });
-        }
+        // Embed content was folded into discordMessage above. Do not just log embed URLs here.
 
         if (message.attachments.size > 0) {
             for (const attachment of message.attachments.values()) {
@@ -1027,7 +1032,11 @@ discordClient.on('messageCreate', async (message) => {
 
         // -------- Relay the actual message --------
 
-        const lines = discordMessage.split('\n');
+        const lines = discordMessage
+            .split('\n')
+            .map(line => line.trimEnd())
+            .filter(line => line.trim().length > 0);
+
         lines.forEach((line) => {
             ircClient.say(mappedIRCChannel, `<${antiPing(senderNickname)}> ${line}`);
         });
@@ -1259,6 +1268,95 @@ function truncateString(str, maxLength) {
         // Truncate the string and append Unicode character U+2026 (…)
         return str.slice(0, maxLength - 1) + '…';
     }
+}
+
+
+function normalizeEmbedTextForIRC(value) {
+    return discordMarkdownToIRC(String(value || ''))
+        .replace(/\r/g, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+function truncateEmbedPart(value, maxLength) {
+    const text = normalizeEmbedTextForIRC(value);
+
+    if (!text) {
+        return '';
+    }
+
+    return truncateString(text, maxLength);
+}
+
+function formatDiscordEmbedForIRC(embed) {
+    if (!embed) {
+        return '';
+    }
+
+    const parts = [];
+
+    const authorName = truncateEmbedPart(embed.author?.name, 80);
+    const title = truncateEmbedPart(embed.title, 180);
+    const description = truncateEmbedPart(embed.description, 500);
+    const embedUrl = String(embed.url || '').trim();
+
+    // GitHub webhook embeds usually have the important event summary in the title,
+    // author and description. Keep those prominent and compact.
+    if (authorName && authorName !== title) {
+        parts.push(authorName);
+    }
+
+    if (title) {
+        parts.push(title);
+    }
+
+    if (description) {
+        parts.push(description);
+    }
+
+    // Include embed fields, but cap them so giant CI/webhook embeds do not flood IRC.
+    if (Array.isArray(embed.fields)) {
+        for (const field of embed.fields.slice(0, 6)) {
+            const fieldName = truncateEmbedPart(field?.name, 80);
+            const fieldValue = truncateEmbedPart(field?.value, 240);
+
+            if (!fieldName && !fieldValue) {
+                continue;
+            }
+
+            if (fieldName && fieldValue) {
+                parts.push(`${fieldName}: ${fieldValue}`);
+            } else {
+                parts.push(fieldName || fieldValue);
+            }
+        }
+    }
+
+    if (embedUrl) {
+        // Do not duplicate a URL that Discord/GitHub already put directly in the text.
+        const alreadyPresent = parts.some(part => part.includes(embedUrl));
+        if (!alreadyPresent) {
+            parts.push(embedUrl);
+        }
+    }
+
+    return parts
+        .map(part => String(part).trim())
+        .filter(Boolean)
+        .join('\n');
+}
+
+function formatDiscordEmbedsForIRC(embeds) {
+    if (!embeds || embeds.length === 0) {
+        return '';
+    }
+
+    return embeds
+        .slice(0, 4)
+        .map(formatDiscordEmbedForIRC)
+        .filter(Boolean)
+        .join('\n');
 }
 
 function getDiscordMessageAuthorName(message) {
