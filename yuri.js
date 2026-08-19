@@ -15,9 +15,6 @@ const irc = require('irc-framework');
 const mime = require('mime-types');
 const { URL } = require('url');
 const {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
     Client,
     GatewayIntentBits,
     MessageType,
@@ -31,8 +28,6 @@ const ircConfig = config.irc;
 
 config.discord.allowedUsers ??= [];
 config.discord.linkAllowedUsers ??= ['124625753240240132'];
-config.pmBridge ??= {};
-config.pmBridge.blockedDiscordUsers ??= [];
 config.irc.registeredUsers ??= [];
 config.channelMappings ??= {};
 
@@ -61,15 +56,8 @@ const webhookCache = new Map();
 const ircUserChannelMapping = new Map();
 const BRIDGE_BUILD = '2026-07-09-reaction-quote-fix-2';
 const recentRelayIndex = new Map();
-const pmSessionsByIRC = new Map();
-const pmSessionsByDiscord = new Map();
-const pendingPMRequests = new Map();
-const pendingPMByIRC = new Map();
-const pendingPMByDiscord = new Map();
 
 const RELAY_TTL_MS = 5 * 60 * 1000;
-const PM_SESSION_TTL_MS = Number(config.pmBridge.sessionTtlMs || 60 * 60 * 1000);
-const PM_REQUEST_TTL_MS = Number(config.pmBridge.requestTtlMs || 10 * 60 * 1000);
 const IRC_RECONNECT_MIN_MS = 5_000;
 const IRC_RECONNECT_MAX_MS = 5 * 60_000;
 const MAX_REMOTE_FILE_BYTES = Number(config.maxRemoteFileBytes || 25 * 1024 * 1024);
@@ -273,7 +261,6 @@ discordClient.once('ready', async () => {
 });
 
 discordClient.on('messageCreate', handleDiscordMessageCreate);
-discordClient.on('interactionCreate', handleDiscordInteraction);
 discordClient.on('messageUpdate', handleDiscordMessageUpdate);
 discordClient.on('messageDelete', handleDiscordMessageDelete);
 discordClient.on('messageDeleteBulk', handleDiscordMessageDeleteBulk);
@@ -294,11 +281,6 @@ async function handleIRCMessage(event) {
     }
 
     const plainMessage = stripIrcFormatting(event.message);
-    if (isIRCPrivateMessage(event.target)) {
-        await handleIRCPMMessage(event, plainMessage);
-        return;
-    }
-
     let bridgeMessage = ircToDiscordBridgeMessage(event.message);
     const sender = event.nick;
     const target = normalizeIRCChannel(event.target);
@@ -314,65 +296,6 @@ async function handleIRCMessage(event) {
 
     bridgeMessage = replaceIRCMentionsForDiscord(bridgeMessage, mappedChannel);
     await relayIRCToDiscord(mappedChannel, sender, bridgeMessage);
-}
-
-function isIRCPrivateMessage(target) {
-    return normalizeIRCChannel(target) === normalizeIRCChannel(ircConfig.nick);
-}
-
-async function handleIRCPMMessage(event, plainMessage) {
-    const sender = String(event.nick || '').trim();
-    const senderKey = normalizeIRCNick(sender);
-    const text = String(plainMessage || '').trim();
-
-    if (!senderKey || !text) {
-        return;
-    }
-
-    prunePMSessions();
-
-    const session = pmSessionsByIRC.get(senderKey);
-    const command = text.toLowerCase();
-
-    if (['close', 'end', '!close', '!end'].includes(command)) {
-        if (session) {
-            endPMSession(session, 'The IRC user closed the conversation.', false);
-            ircClient.say(sender, '[Yuri] PM conversation closed.');
-        } else {
-            ircClient.say(sender, '[Yuri] No active PM conversation.');
-        }
-        return;
-    }
-
-    if (['help', '!help'].includes(command)) {
-        ircClient.say(
-            sender,
-            '[Yuri] Start: /msg Yuri pm DiscordName: message | Continue: /msg Yuri message | Close: /msg Yuri close'
-        );
-        return;
-    }
-
-    if (session) {
-        session.lastActivityAt = Date.now();
-        await relayIRCMessageToDiscord(session, sender, text, sender);
-        return;
-    }
-
-    const request = parseIRCStartPM(text);
-    if (!request) {
-        ircClient.say(
-            sender,
-            '[Yuri] Start a PM with: /msg Yuri pm DiscordName: message (or /msg Yuri help)'
-        );
-        return;
-    }
-
-    await startPendingPMRequest({
-        ircNick: sender,
-        discordQuery: request.discordQuery,
-        message: request.message,
-        replyTarget: sender
-    });
 }
 
 async function handleIRCAction(event) {
@@ -391,386 +314,6 @@ async function handleIRCAction(event) {
     }
 
     await relayIRCToDiscord(mappedChannel, event.nick, bridgeMessage);
-}
-
-function normalizeIRCNick(nick) {
-    return String(nick || '').trim().toLowerCase();
-}
-
-function parseIRCStartPM(text) {
-    const match = String(text || '').trim().match(/^!?pm\s+(.+?)\s*:\s*([\s\S]+)$/i);
-    if (match) {
-        return {
-            discordQuery: match[1].trim(),
-            message: match[2].trim()
-        };
-    }
-
-    const parts = String(text || '').trim().split(/\s+/);
-    if (parts.length < 3 || !/^!?pm$/i.test(parts[0])) {
-        return null;
-    }
-
-    return {
-        discordQuery: parts[1],
-        message: parts.slice(2).join(' ').trim()
-    };
-}
-
-async function startPendingPMRequest({ ircNick, discordQuery, message, replyTarget }) {
-    prunePMSessions();
-
-    const ircKey = normalizeIRCNick(ircNick);
-    const candidates = findDiscordUsers(discordQuery);
-
-    if (candidates.length === 0) {
-        ircClient.say(
-            replyTarget,
-            `[Yuri] I could not find a Discord user matching "${discordQuery}" in a shared server.`
-        );
-        return;
-    }
-
-    if (candidates.length > 1) {
-        const names = candidates
-            .slice(0, 5)
-            .map((user) => getDiscordUserLabel(user))
-            .join(', ');
-        ircClient.say(
-            replyTarget,
-            `[Yuri] That name is ambiguous. Matches: ${names}. Use the exact Discord username or tag.`
-        );
-        return;
-    }
-
-    const discordUser = candidates[0];
-    const discordId = String(discordUser.id);
-
-    if (config.pmBridge.blockedDiscordUsers.includes(discordId)) {
-        ircClient.say(replyTarget, '[Yuri] That Discord user has blocked PM requests.');
-        return;
-    }
-
-    if (pmSessionsByIRC.has(ircKey)) {
-        ircClient.say(replyTarget, '[Yuri] You already have an active PM conversation. Use /msg Yuri close first.');
-        return;
-    }
-
-    if (pmSessionsByDiscord.has(discordId)) {
-        ircClient.say(replyTarget, '[Yuri] That Discord user already has an active PM conversation.');
-        return;
-    }
-
-    const existingRequestKey = pendingPMByIRC.get(ircKey);
-    if (existingRequestKey) {
-        ircClient.say(replyTarget, '[Yuri] You already have a pending PM request.');
-        return;
-    }
-
-    const existingDiscordRequestKey = pendingPMByDiscord.get(discordId);
-    if (existingDiscordRequestKey) {
-        ircClient.say(replyTarget, '[Yuri] That Discord user already has a pending PM request.');
-        return;
-    }
-
-    const token = crypto.randomBytes(12).toString('hex');
-    const pending = {
-        token,
-        ircNick: String(ircNick),
-        ircKey,
-        discordUserId: discordId,
-        discordLabel: getDiscordUserLabel(discordUser),
-        message: String(message).slice(0, 1900),
-        createdAt: Date.now()
-    };
-
-    try {
-        await discordUser.send({
-            content:
-                `PM request from IRC user **${escapeDiscordText(ircNick)}**:\n\n` +
-                `${escapeDiscordText(pending.message)}\n\n` +
-                'Accept the request to open a private conversation. You can then reply to this DM normally.',
-            components: [buildPMRequestButtons(token)]
-        });
-    } catch (error) {
-        console.error(`[pm] Failed to DM Discord user ${discordId}:`, error);
-        ircClient.say(
-            replyTarget,
-            '[Yuri] I could not send that user a Discord DM. They may have DMs disabled for this server.'
-        );
-        return;
-    }
-
-    pendingPMRequests.set(token, pending);
-    pendingPMByIRC.set(ircKey, token);
-    pendingPMByDiscord.set(discordId, token);
-    ircClient.say(replyTarget, `[Yuri] PM request sent to ${pending.discordLabel}. Waiting for acceptance.`);
-}
-
-function findDiscordUsers(query) {
-    const normalizedQuery = String(query || '').trim().toLowerCase();
-    const users = new Map();
-
-    for (const guild of discordClient.guilds.cache.values()) {
-        for (const member of guild.members.cache.values()) {
-            const user = member.user;
-            const names = [
-                user.username,
-                user.globalName,
-                member.displayName,
-                user.tag
-            ]
-                .filter(Boolean)
-                .map((value) => String(value).toLowerCase());
-
-            if (names.includes(normalizedQuery)) {
-                users.set(user.id, user);
-            }
-        }
-    }
-
-    return [...users.values()];
-}
-
-function getDiscordUserLabel(user) {
-    return user?.tag || user?.globalName || user?.username || user?.id || 'Unknown Discord user';
-}
-
-function buildPMRequestButtons(token) {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`yuri_pm_accept:${token}`)
-            .setLabel('Accept')
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`yuri_pm_decline:${token}`)
-            .setLabel('Decline')
-            .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-            .setCustomId(`yuri_pm_block:${token}`)
-            .setLabel('Block')
-            .setStyle(ButtonStyle.Danger)
-    );
-}
-
-async function handleDiscordInteraction(interaction) {
-    if (!interaction.isButton() || !interaction.customId.startsWith('yuri_pm_')) {
-        return;
-    }
-
-    const closeMatch = interaction.customId.match(/^yuri_pm_close:([a-f0-9]+)$/i);
-    if (closeMatch) {
-        const session = pmSessionsByDiscord.get(String(interaction.user.id));
-        if (!session || session.token !== closeMatch[1]) {
-            await interaction.reply({ content: 'That PM conversation is no longer active.' });
-            return;
-        }
-
-        endPMSession(session, 'The Discord user closed the conversation.', false);
-        await interaction.update({
-            content: 'PM conversation closed.',
-            components: []
-        });
-        ircClient.say(session.ircNick, '[Yuri] The Discord user closed the PM conversation.');
-        return;
-    }
-
-    const match = interaction.customId.match(/^yuri_pm_(accept|decline|block):([a-f0-9]+)$/i);
-    if (!match) {
-        return;
-    }
-
-    prunePMSessions();
-
-    const pending = pendingPMRequests.get(match[2]);
-    if (!pending || pending.discordUserId !== String(interaction.user.id)) {
-        await interaction.reply({ content: 'That PM request has expired.' });
-        return;
-    }
-
-    removePendingPMRequest(pending);
-
-    if (match[1] === 'accept') {
-        const session = createPMSession(pending);
-        await interaction.update({
-            content:
-                `PM with **${escapeDiscordText(pending.ircNick)}** is now open. ` +
-                'Reply to this DM normally; use the button below when you are finished.',
-            components: [buildPMCloseButton(session)]
-        });
-        ircClient.say(
-            pending.ircNick,
-            `[Yuri] ${pending.discordLabel} accepted your PM request. You can now /msg Yuri messages.`
-        );
-        await relayIRCMessageToDiscord(session, pending.ircNick, pending.message, pending.ircNick);
-        return;
-    }
-
-    if (match[1] === 'block') {
-        if (!config.pmBridge.blockedDiscordUsers.includes(pending.discordUserId)) {
-            config.pmBridge.blockedDiscordUsers.push(pending.discordUserId);
-            saveConfig();
-        }
-    }
-
-    const action = match[1] === 'block' ? 'blocked' : 'declined';
-    await interaction.update({
-        content: `PM request ${action}.`,
-        components: []
-    });
-    ircClient.say(pending.ircNick, `[Yuri] Your PM request was ${action}.`);
-}
-
-function buildPMCloseButton(session) {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`yuri_pm_close:${session.token}`)
-            .setLabel('Close conversation')
-            .setStyle(ButtonStyle.Secondary)
-    );
-}
-
-function createPMSession(pending) {
-    const session = {
-        token: pending.token,
-        ircNick: pending.ircNick,
-        ircKey: pending.ircKey,
-        discordUserId: pending.discordUserId,
-        discordLabel: pending.discordLabel,
-        createdAt: Date.now(),
-        lastActivityAt: Date.now()
-    };
-
-    pmSessionsByIRC.set(session.ircKey, session);
-    pmSessionsByDiscord.set(session.discordUserId, session);
-    return session;
-}
-
-function removePendingPMRequest(pending) {
-    pendingPMRequests.delete(pending.token);
-    pendingPMByIRC.delete(pending.ircKey);
-    pendingPMByDiscord.delete(pending.discordUserId);
-}
-
-function endPMSession(session, reason = 'The PM conversation was closed.', notifyDiscord = true) {
-    pmSessionsByIRC.delete(session.ircKey);
-    pmSessionsByDiscord.delete(session.discordUserId);
-    if (notifyDiscord) {
-        void sendDiscordPM(session.discordUserId, `[Yuri] ${reason}`).catch((error) => {
-            console.error('[pm] Failed to send session-close notification:', error);
-        });
-    }
-}
-
-async function relayIRCMessageToDiscord(session, ircNick, text, replyTarget) {
-    try {
-        await sendDiscordPM(
-            session.discordUserId,
-            `${ircNick}: ${text}`
-        );
-        session.lastActivityAt = Date.now();
-    } catch (error) {
-        console.error('[pm] Failed to relay IRC message to Discord:', error);
-        ircClient.say(replyTarget, '[Yuri] I could not deliver that message to Discord.');
-    }
-}
-
-async function handleDiscordPMMessage(message) {
-    if (!message.author || message.author.bot) {
-        return true;
-    }
-
-    const text = String(message.cleanContent || message.content || '').trim();
-    if (!text) {
-        return true;
-    }
-
-    const [commandRaw, ...args] = text.split(/\s+/);
-    if (String(commandRaw || '').toLowerCase() === '!link') {
-        if (!isDiscordLinkAllowed(message.author.id)) {
-            await message.channel.send('Permission denied');
-            return true;
-        }
-
-        await handleDiscordLinkCommand(message, args);
-        return true;
-    }
-
-    prunePMSessions();
-    const session = pmSessionsByDiscord.get(String(message.author.id));
-    if (!session) {
-        await message.channel.send(
-            '[Yuri] You do not have an active PM conversation. An IRC user must start one first.'
-        );
-        return true;
-    }
-
-    if (['close', '!close', 'end', '!end'].includes(text.toLowerCase())) {
-        endPMSession(session, 'The Discord user closed the conversation.', false);
-        await message.channel.send('[Yuri] PM conversation closed.');
-        ircClient.say(session.ircNick, '[Yuri] The Discord user closed the PM conversation.');
-        return true;
-    }
-
-    session.lastActivityAt = Date.now();
-    ircClient.say(session.ircNick, `${session.discordLabel}: ${text}`);
-    return true;
-}
-
-function isDiscordLinkAllowed(userId) {
-    return config.discord.linkAllowedUsers.some((allowedId) => String(allowedId) === String(userId));
-}
-
-async function handleDiscordLinkCommand(message, args) {
-    const [discordChannelID, ircChannelRaw, showMoreInfoRaw = 'false'] = args;
-    const ircChannel = normalizeIRCChannel(ircChannelRaw);
-
-    if (!/^\d+$/.test(discordChannelID || '') || !ircChannel.startsWith('#')) {
-        await message.channel.send('Usage: !link DiscordChannelID #IRCChannel [true|false]');
-        return;
-    }
-
-    channelMappings[ircChannel] = {
-        discordChannelID,
-        showMoreInfo: String(showMoreInfoRaw).toLowerCase() === 'true'
-    };
-    saveConfig();
-    ircClient.join(ircChannel);
-    await message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel}.`);
-}
-
-async function sendDiscordPM(discordUserId, content) {
-    const user = await discordClient.users.fetch(String(discordUserId));
-    const safeContent = String(content || '')
-        .replace(/@(everyone|here)/gi, '@\u200b$1')
-        .slice(0, 2000);
-    await user.send({
-        content: safeContent,
-        allowedMentions: { parse: [] }
-    });
-}
-
-function prunePMSessions() {
-    const now = Date.now();
-
-    for (const pending of pendingPMRequests.values()) {
-        if (now - pending.createdAt > PM_REQUEST_TTL_MS) {
-            removePendingPMRequest(pending);
-        }
-    }
-
-    for (const session of [...pmSessionsByIRC.values()]) {
-        if (now - session.lastActivityAt > PM_SESSION_TTL_MS) {
-            endPMSession(session, 'The PM conversation expired due to inactivity.');
-        }
-    }
-}
-
-function escapeDiscordText(value) {
-    return String(value || '')
-        .replace(/\\/g, '\\\\')
-        .replace(/([*_`~>|])/g, '\\$1')
-        .replace(/@(everyone|here)/gi, '@\u200b$1');
 }
 
 async function handleIRCCommand({ event, plainMessage, bridgeMessage, sender, target }) {
@@ -1000,6 +543,61 @@ function replaceIRCMentionsForDiscord(message, mappedChannel) {
     });
 }
 
+async function handleDiscordDMMessage(message) {
+    if (!message.author || message.author.bot) {
+        return true;
+    }
+
+    const text = String(message.cleanContent || message.content || '').trim();
+    if (!text) {
+        return true;
+    }
+
+    const [commandRaw, ...args] = text.split(/\s+/);
+    if (String(commandRaw || '').toLowerCase() === '!link') {
+        console.log(`[discord] Received DM link request from ${message.author.id}`);
+        if (!isDiscordLinkAllowed(message.author.id)) {
+            await message.channel.send('Permission denied');
+            return true;
+        }
+
+        try {
+            await handleDiscordLinkCommand(message, args);
+        } catch (error) {
+            console.error('[discord] DM link command failed:', error);
+            await message.channel.send('[Yuri] Link failed. Check the bot logs for the error.');
+        }
+        return true;
+    }
+
+    await message.channel.send(
+        '[Yuri] DM usage: !link DiscordChannelID #IRCChannel [true|false]'
+    );
+    return true;
+}
+
+function isDiscordLinkAllowed(userId) {
+    return config.discord.linkAllowedUsers.some((allowedId) => String(allowedId) === String(userId));
+}
+
+async function handleDiscordLinkCommand(message, args) {
+    const [discordChannelID, ircChannelRaw, showMoreInfoRaw = 'false'] = args;
+    const ircChannel = normalizeIRCChannel(ircChannelRaw);
+
+    if (!/^\d+$/.test(discordChannelID || '') || !ircChannel.startsWith('#')) {
+        await message.channel.send('Usage: !link DiscordChannelID #IRCChannel [true|false]');
+        return;
+    }
+
+    channelMappings[ircChannel] = {
+        discordChannelID,
+        showMoreInfo: String(showMoreInfoRaw).toLowerCase() === 'true'
+    };
+    saveConfig();
+    ircClient.join(ircChannel);
+    await message.channel.send(`Linked Discord channel ${discordChannelID} to IRC channel ${ircChannel}.`);
+}
+
 async function handleDiscordMessageCreate(message) {
     try {
         if (message.author?.id === discordClient.user?.id) {
@@ -1007,7 +605,13 @@ async function handleDiscordMessageCreate(message) {
         }
 
         if (!message.guildId) {
-            await handleDiscordPMMessage(message);
+            await handleDiscordDMMessage(message);
+            return;
+        }
+
+        const commandMessage = discordMarkdownToIRC(message.cleanContent || message.content || '').trim();
+        if (/^!link(?:\s|$)/i.test(commandMessage)) {
+            await handleDiscordCommand(message, commandMessage);
             return;
         }
 
