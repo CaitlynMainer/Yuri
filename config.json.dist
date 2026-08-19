@@ -1,7 +1,8 @@
 {
     "discord": {
       "token": "BotToken",
-      "allowedUsers": ["DiscordUserID1", "DiscordUserID2"]
+      "allowedUsers": ["DiscordUserID1", "DiscordUserID2"],
+      "linkAllowedUsers": ["124625753240240132"]
     },
     "irc": {
       "server": "irc.network.net",
@@ -11,12 +12,17 @@
       "identPass": "BotNSPassword",
       "registeredUsers": ["IRCAdmin1", "IRCAdmin2"]
     },
+    "pmBridge": {
+      "sessionTtlMs": 3600000,
+      "requestTtlMs": 600000,
+      "blockedDiscordUsers": []
+    },
     "webHookName": "Corded",
     "webHookAvatar": "http://127.0.0.1:3000/avatar?nick=%IRCUSERNAME%",
     "embedSite": "http://127.0.0.1:3000/",
     "channelMappings": {
         "#YourIRCChan": "YourDiscordChanID",
-        "#YourIRCChan2": "YourDiscordChanID2",
+        "#YourIRCChan2": "YourDiscordChanID2"
     }
   }
   
