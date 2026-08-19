@@ -686,7 +686,30 @@ async function handleDiscordPMMessage(message) {
     }
 
     const [commandRaw, ...args] = text.split(/\s+/);
-    if (String(commandRaw || '').toLowerCase() === '!link') {
+    const command = String(commandRaw || '').toLowerCase();
+
+    if (command === '!pm') {
+        if (!isDiscordAdminAllowed(message.author.id)) {
+            await message.channel.send('Permission denied');
+            return true;
+        }
+
+        const request = parseDiscordStartPM(text);
+        if (!request) {
+            await message.channel.send('[Yuri] Usage: !pm IRCNick: message');
+            return true;
+        }
+
+        try {
+            await startDiscordPMSession(message, request.ircNick, request.message);
+        } catch (error) {
+            console.error('[discord] DM PM command failed:', error);
+            await message.channel.send('[Yuri] Could not start the PM. Check the bot logs for the error.');
+        }
+        return true;
+    }
+
+    if (command === '!link') {
         console.log(`[discord] Received DM link request from ${message.author.id}`);
         if (!isDiscordLinkAllowed(message.author.id)) {
             await message.channel.send('Permission denied');
@@ -725,6 +748,71 @@ async function handleDiscordPMMessage(message) {
 
 function isDiscordLinkAllowed(userId) {
     return config.discord.linkAllowedUsers.some((allowedId) => String(allowedId) === String(userId));
+}
+
+function isDiscordAdminAllowed(userId) {
+    return config.discord.allowedUsers.some((allowedId) => String(allowedId) === String(userId));
+}
+
+function parseDiscordStartPM(text) {
+    const match = String(text || '').trim().match(/^!?pm\s+([^\s:]+)\s*:\s*([\s\S]+)$/i);
+    if (!match) {
+        return null;
+    }
+
+    return {
+        ircNick: match[1].trim(),
+        message: match[2].trim()
+    };
+}
+
+async function startDiscordPMSession(message, ircNick, initialText) {
+    prunePMSessions();
+
+    const discordUserId = String(message.author.id);
+    const ircKey = normalizeIRCNick(ircNick);
+
+    if (!ircKey || /\s/.test(String(ircNick))) {
+        await message.channel.send('[Yuri] Usage: !pm IRCNick: message');
+        return;
+    }
+
+    if (pmSessionsByDiscord.has(discordUserId)) {
+        await message.channel.send('[Yuri] You already have an active PM conversation. Use the close button first.');
+        return;
+    }
+
+    if (pmSessionsByIRC.has(ircKey)) {
+        await message.channel.send('[Yuri] That IRC user already has an active PM conversation.');
+        return;
+    }
+
+    if (pendingPMByIRC.has(ircKey)) {
+        await message.channel.send('[Yuri] That IRC user has a pending PM request already.');
+        return;
+    }
+
+    if (pendingPMByDiscord.has(discordUserId)) {
+        await message.channel.send('[Yuri] You already have a pending PM request. Accept or decline it first.');
+        return;
+    }
+
+    const session = createPMSession({
+        token: crypto.randomBytes(12).toString('hex'),
+        ircNick: String(ircNick),
+        ircKey,
+        discordUserId,
+        discordLabel: getDiscordMessageAuthorName(message),
+        createdAt: Date.now()
+    });
+
+    ircClient.say(session.ircNick, `${session.discordLabel}: ${initialText}`);
+    await message.channel.send({
+        content:
+            `[Yuri] PM with **${escapeDiscordText(session.ircNick)}** is now open. ` +
+            'Reply here normally; use the button below when you are finished.',
+        components: [buildPMCloseButton(session)]
+    });
 }
 
 async function handleDiscordLinkCommand(message, args) {
