@@ -1283,10 +1283,10 @@ async function handleDiscordMessageUpdate(oldMessage, newMessage) {
             return;
         }
 
-        ircClient.say(
-            mappedIRCChannel,
-            `<${antiPing(getDiscordMessageAuthorName(newMessage))}> ${diff}`
-        );
+        const senderNickname = antiPing(getDiscordMessageAuthorName(newMessage));
+        for (const line of diff.split('\n').filter((part) => part.trim().length > 0)) {
+            ircClient.say(mappedIRCChannel, `<${senderNickname}> ${line}`);
+        }
     } catch (error) {
         console.error('[discord] messageUpdate failed:', error);
     }
