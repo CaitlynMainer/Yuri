@@ -68,6 +68,7 @@ const pendingPMByIRC = new Map();
 const pendingPMByDiscord = new Map();
 
 const RELAY_TTL_MS = 5 * 60 * 1000;
+const MAX_DISCORD_EDIT_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const PM_SESSION_TTL_MS = Number(config.pmBridge.sessionTtlMs || 60 * 60 * 1000);
 const PM_REQUEST_TTL_MS = Number(config.pmBridge.requestTtlMs || 10 * 60 * 1000);
 const IRC_RECONNECT_MIN_MS = 5_000;
@@ -1268,6 +1269,10 @@ async function handleDiscordMessageUpdate(oldMessage, newMessage) {
     try {
         if (oldMessage.partial) await oldMessage.fetch();
         if (newMessage.partial) await newMessage.fetch();
+
+        if (Date.now() - newMessage.createdTimestamp > MAX_DISCORD_EDIT_AGE_MS) {
+            return;
+        }
 
         const mappedIRCChannel = findIRCChannelByDiscordId(newMessage.channel.id);
         if (!mappedIRCChannel || await isOwnWebhookMessage(newMessage)) {
