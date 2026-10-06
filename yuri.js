@@ -1811,12 +1811,20 @@ function lineDiff(oldMessage, newMessage) {
 }
 
 function discordMarkdownToIRC(message) {
-    return String(message || '')
+    const links = [];
+    const protectedMessage = String(message || '').replace(/https?:\/\/[^\s)<>"']+/gi, (url) => {
+        const token = `\u0000${links.length}\u0000`;
+        links.push(url);
+        return token;
+    });
+
+    return protectedMessage
         .replace(/\*\*(.+?)\*\*/gs, '\x02$1\x02')
         .replace(/__(.+?)__/gs, '\x1F$1\x1F')
         .replace(/~~(.+?)~~/gs, '\x1D$1\x1D')
         .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/gs, '\x1D$1\x1D')
-        .replace(/(?<!_)_([^_]+?)_(?!_)/gs, '\x1D$1\x1D');
+        .replace(/(?<!_)_([^_]+?)_(?!_)/gs, '\x1D$1\x1D')
+        .replace(/\u0000(\d+)\u0000/g, (_, index) => links[Number(index)]);
 }
 
 function hasIrcColorFormatting(message) {
