@@ -20,6 +20,8 @@
     "webHookName": "Corded",
     "webHookAvatar": "http://127.0.0.1:3000/avatar?nick=%IRCUSERNAME%",
     "embedSite": "http://127.0.0.1:3000/",
+    "maxRemoteFileBytes": 104857600,
+    "remoteRequestTimeoutMs": 120000,
     "channelMappings": {
         "#YourIRCChan": "YourDiscordChanID",
         "#YourIRCChan2": "YourDiscordChanID2"

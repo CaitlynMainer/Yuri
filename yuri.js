@@ -73,8 +73,8 @@ const PM_SESSION_TTL_MS = Number(config.pmBridge.sessionTtlMs || 60 * 60 * 1000)
 const PM_REQUEST_TTL_MS = Number(config.pmBridge.requestTtlMs || 10 * 60 * 1000);
 const IRC_RECONNECT_MIN_MS = 5_000;
 const IRC_RECONNECT_MAX_MS = 5 * 60_000;
-const MAX_REMOTE_FILE_BYTES = Number(config.maxRemoteFileBytes || 25 * 1024 * 1024);
-const REMOTE_REQUEST_TIMEOUT_MS = Number(config.remoteRequestTimeoutMs || 30_000);
+const MAX_REMOTE_FILE_BYTES = Number(config.maxRemoteFileBytes || 100 * 1024 * 1024);
+const REMOTE_REQUEST_TIMEOUT_MS = Number(config.remoteRequestTimeoutMs || 120_000);
 
 let ircReconnectTimer = null;
 let ircReconnectAttempts = 0;
@@ -1464,6 +1464,7 @@ async function setIRCUserAvatar(nick, avatarUrl, replyTarget) {
 async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
     const safeMessageId = sanitizePathSegment(messageId);
     const targetDir = path.join(baseDirectory, safeMessageId);
+    let savedFilePath;
 
     try {
         await fs.promises.mkdir(targetDir, { recursive: true });
@@ -1471,7 +1472,7 @@ async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
         const parsedUrl = new URL(urlIn);
         const extension = path.extname(parsedUrl.pathname) || '.bin';
         const filename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
-        const savedFilePath = path.join(targetDir, filename);
+        savedFilePath = path.join(targetDir, filename);
 
         const response = await axios.get(urlIn, {
             responseType: 'stream',
@@ -1506,7 +1507,9 @@ async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
         return path.posix.join(safeMessageId, filename);
     } catch (error) {
         console.error('[embeds] Download failed:', error);
-        await fs.promises.rm(targetDir, { recursive: true, force: true }).catch(() => {});
+        if (savedFilePath) {
+            await fs.promises.rm(savedFilePath, { force: true }).catch(() => {});
+        }
         return null;
     }
 }
