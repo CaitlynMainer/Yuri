@@ -1162,6 +1162,9 @@ async function handleDiscordMessageCreate(message) {
                 const publicPath = await downloadAndSaveFile(attachment.url, message.id, savedEmbedsPath);
                 if (publicPath) {
                     discordMessage += ` ${String(config.embedSite || '').replace(/\/$/, '')}/${publicPath}`;
+                } else if (attachment.url) {
+                    const filename = String(attachment.name || 'attachment').replace(/[\r\n<>]/g, '_');
+                    discordMessage += ` [${filename}] ${attachment.url}`;
                 }
             }
         }
