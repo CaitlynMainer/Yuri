@@ -1159,7 +1159,12 @@ async function handleDiscordMessageCreate(message) {
 
         if (message.attachments.size > 0) {
             for (const attachment of message.attachments.values()) {
-                const publicPath = await downloadAndSaveFile(attachment.url, message.id, savedEmbedsPath);
+                const publicPath = await downloadAndSaveFile(
+                    attachment.url,
+                    message.id,
+                    savedEmbedsPath,
+                    attachment.name
+                );
                 if (publicPath) {
                     discordMessage += ` ${String(config.embedSite || '').replace(/\/$/, '')}/${publicPath}`;
                 } else if (attachment.url) {
@@ -1461,7 +1466,7 @@ async function setIRCUserAvatar(nick, avatarUrl, replyTarget) {
     }
 }
 
-async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
+async function downloadAndSaveFile(urlIn, messageId, baseDirectory, originalFilename) {
     const safeMessageId = sanitizePathSegment(messageId);
     const targetDir = path.join(baseDirectory, safeMessageId);
     let savedFilePath;
@@ -1470,9 +1475,17 @@ async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
         await fs.promises.mkdir(targetDir, { recursive: true });
 
         const parsedUrl = new URL(urlIn);
-        const extension = path.extname(parsedUrl.pathname) || '.bin';
-        const filename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${extension}`;
-        savedFilePath = path.join(targetDir, filename);
+        const fallbackExtension = path.extname(parsedUrl.pathname) || '.bin';
+        const filename = sanitizeAttachmentFilename(originalFilename, fallbackExtension);
+        let uniqueFilename = filename;
+        let suffix = 2;
+        while (fs.existsSync(path.join(targetDir, uniqueFilename))) {
+            const extension = path.extname(filename);
+            const stem = extension ? filename.slice(0, -extension.length) : filename;
+            uniqueFilename = `${stem} (${suffix++})${extension}`;
+        }
+        const publicFilename = uniqueFilename.split('/').map(encodeURIComponent).join('/');
+        savedFilePath = path.join(targetDir, uniqueFilename);
 
         const response = await axios.get(urlIn, {
             responseType: 'stream',
@@ -1504,7 +1517,7 @@ async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
             response.data.once('error', reject);
         });
 
-        return path.posix.join(safeMessageId, filename);
+        return path.posix.join(safeMessageId, publicFilename);
     } catch (error) {
         console.error('[embeds] Download failed:', error);
         if (savedFilePath) {
@@ -1512,6 +1525,22 @@ async function downloadAndSaveFile(urlIn, messageId, baseDirectory) {
         }
         return null;
     }
+}
+
+function sanitizeAttachmentFilename(filename, fallbackExtension) {
+    let safeFilename = path.basename(String(filename || '').replace(/\\/g, '/'))
+        .replace(/[\u0000-\u001f\u007f<>:"|?*]/g, '_')
+        .replace(/[. ]+$/g, '');
+
+    if (!safeFilename || safeFilename === '.' || safeFilename === '..') {
+        safeFilename = `attachment${fallbackExtension}`;
+    }
+
+    if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i.test(safeFilename)) {
+        safeFilename = `_${safeFilename}`;
+    }
+
+    return safeFilename.slice(0, 180);
 }
 
 async function uploadToHastebin(content) {
