@@ -1799,8 +1799,13 @@ function formatDiscordEmbedsForIRC(embeds) {
 function formatReactionForIRC(reaction) {
     const emoji = reaction?.emoji;
     if (!emoji) return ':unknown:';
-    if (emoji.id && emoji.name) return `:${emoji.name}:`;
+    if (emoji.id) return getDiscordEmojiImageUrl(emoji.id, emoji.animated);
     return emoji.name || emoji.toString() || ':unknown:';
+}
+
+function getDiscordEmojiImageUrl(emojiId, animated = false) {
+    const extension = animated ? 'gif' : 'png';
+    return `https://cdn.discordapp.com/emojis/${emojiId}.${extension}`;
 }
 
 function summarizeDiscordMessageForIRC(message, maxLength = 80) {
@@ -1847,7 +1852,10 @@ function lineDiff(oldMessage, newMessage) {
 
 function discordMarkdownToIRC(message) {
     const links = [];
-    const protectedMessage = String(message || '').replace(/https?:\/\/[^\s)<>"']+/gi, (url) => {
+    const emojiConvertedMessage = String(message || '').replace(/<a?:[A-Za-z0-9_]+:(\d+)>/g, (match, emojiId) => {
+        return getDiscordEmojiImageUrl(emojiId, match.startsWith('<a:'));
+    });
+    const protectedMessage = emojiConvertedMessage.replace(/https?:\/\/[^\s)<>"']+/gi, (url) => {
         const token = `\u0000${links.length}\u0000`;
         links.push(url);
         return token;
